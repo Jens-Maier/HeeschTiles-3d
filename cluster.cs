@@ -5,9 +5,6 @@ using System.Threading.Tasks;
 
 namespace surroundNamespace
 {
-
-
-
     public struct int3
     {
         public int x;
@@ -286,7 +283,7 @@ namespace surroundNamespace
             //                  |/
             //              5 --+-- 4
             //                 /|
-            //                0 1  
+            //                0 3  
 
             Gizmos.color = Color.red;
             //foreach (Vector3 p in debgLstRed)
@@ -1294,52 +1291,6 @@ namespace surroundNamespace
             surroundRootNode = next;
         }
 
-        void tilingStep(int neighborPos)
-        {
-            //steps -> called in update...
-
-            posRot pr = neighborTilePositions[neighborPos];
-
-            if (!calculateOverlapSTrue(pyramidSurround, generateSingleTilePyramidCoords(pr.pos, pr.rot)))
-            {
-                node n = new node(pr);
-                if (activeNode != null)
-                {
-                    activeNode.addNode(n);
-                    activeNode = n;
-                }
-                else
-                {
-                    surroundRootNode = n;
-                    activeNode = n;
-                }
-
-                markPyramidSurroundWithNewTile(pr);
-                //Debug.Log("tilingLoop tile: (" + pr.pos.x + ", " + pr.pos.y + ", " + pr.pos.z + "), rot: " + pr.rot);
-            }
-        }
-
-        void calculateTiling(int step)
-        {
-            posRot currentPosRot;
-            if (activeNode.next != null)
-            {
-                currentPosRot = activeNode.next.placement;
-            }
-            else
-            {
-                currentPosRot = activeNode.placement;
-            }
-
-            List<posRot> possibleNextPositions = new List<posRot>();
-
-
-            if (!calculateOverlapSTrue(pyramidSurround, generateSingleTilePyramidCoords(neighborTilePositions[step].pos, neighborTilePositions[step].rot)))
-            {
-                possibleNextPositions.Add(neighborTilePositions[step]);
-            }
-        }
-
         IEnumerator calculateTilingRecursive(List<posRot> currentTiles, List<pyramidCoord> currentPyramids, int stepCount)
         {
             //yield return currentPyramids;
@@ -1391,35 +1342,7 @@ namespace surroundNamespace
         //}
         // -----
 
-        void calculateSurroundTiling(int neighborTileIndex) // off
-        {
-            //Debug.Log("in calculateSurroundTiling(): neighborTilePos count: " + neighborTilePositions.Count); //
-
-            List<pyramidCoord> surroundPyramids = new List<pyramidCoord>();
-           
-            posRot firstTile = neighborTilePositions[neighborTileIndex];
-
-            //surroundRootNode = new node(firstTile);
-            addNodeFirstIn(firstTile);
-
-            drawTileFromSurround(neighborTileIndex);
-
-            markPyramidSurroundWithNewTile(firstTile); // OK
-
-            posRot secondTile = neighborTilePositions[test2];
-
-            bool overlapMarkedPyramidSurroundWithSecondTile = calculateOverlapSTrue(pyramidSurround, generateSingleTilePyramidCoords(secondTile.pos, secondTile.rot));
-            //Debug.Log("overlap second tile with marked pyramidSurround " + overlapMarkedPyramidSurroundWithSecondTile); // OK
-
-            drawTileFromSurround(test2);
-
-            if (!overlapMarkedPyramidSurroundWithSecondTile)
-            {
-                //surroundRootNode.next = new node(secondTile);
-                addNodeFirstIn(secondTile);
-                markPyramidSurroundWithNewTile(secondTile);
-            }
-        }
+        
 
         void markPyramidSurroundWithNewTile(posRot newTile)
         {
@@ -1446,27 +1369,27 @@ namespace surroundNamespace
             }
         }
 
-        bool calculateOverlapWithMarkedTiles(List<(posRot, bool)> cluster, List<pyramidCoord> tile)
-        {
-            bool b = false;
-            
-            foreach ((posRot, bool) c in cluster)
-            {
-                List<pyramidCoord> clusterTilePyrCoord = generateSingleTilePyramidCoords(c.Item1.pos, c.Item1.rot);
-
-                foreach (pyramidCoord tilePyr in tile)
-                {
-                    if (clusterTilePyrCoord.Contains(tilePyr))
-                    {
-                        b = true;
-                        //Debug.Log("tilePyr (" + tilePyr.pos.x + ", " + tilePyr.pos.y + ", " + tilePyr.pos.z + ")"); // ???
-
-                        debgLstBlue.Add(new Vector3((float)tilePyr.pos.x, (float)tilePyr.pos.y, (float)tilePyr.pos.z));
-                    }
-                }
-            }
-            return b;
-        }
+        //bool calculateOverlapWithMarkedTiles(List<(posRot, bool)> cluster, List<pyramidCoord> tile)
+        //{
+        //    bool b = false;
+        //    
+        //    foreach ((posRot, bool) c in cluster)
+        //    {
+        //        List<pyramidCoord> clusterTilePyrCoord = generateSingleTilePyramidCoords(c.Item1.pos, c.Item1.rot);
+        //
+        //        foreach (pyramidCoord tilePyr in tile)
+        //        {
+        //            if (clusterTilePyrCoord.Contains(tilePyr))
+        //            {
+        //                b = true;
+        //                //Debug.Log("tilePyr (" + tilePyr.pos.x + ", " + tilePyr.pos.y + ", " + tilePyr.pos.z + ")"); // ???
+        //
+        //                debgLstBlue.Add(new Vector3((float)tilePyr.pos.x, (float)tilePyr.pos.y, (float)tilePyr.pos.z));
+        //            }
+        //        }
+        //    }
+        //    return b;
+        //}
 
         bool calculateOverlap(List<pyramidCoord> cluster, List<pyramidCoord> tile)
         {
@@ -1814,3 +1737,79 @@ namespace surroundNamespace
     }
 
 }
+
+//void calculateSurroundTiling(int neighborTileIndex) // off
+//{
+//    //Debug.Log("in calculateSurroundTiling(): neighborTilePos count: " + neighborTilePositions.Count); //
+//
+//    List<pyramidCoord> surroundPyramids = new List<pyramidCoord>();
+//   
+//    posRot firstTile = neighborTilePositions[neighborTileIndex];
+//
+//    //surroundRootNode = new node(firstTile);
+//    addNodeFirstIn(firstTile);
+//
+//    drawTileFromSurround(neighborTileIndex);
+//
+//    markPyramidSurroundWithNewTile(firstTile); // OK
+//
+//    posRot secondTile = neighborTilePositions[test2];
+//
+//    bool overlapMarkedPyramidSurroundWithSecondTile = calculateOverlapSTrue(pyramidSurround, generateSingleTilePyramidCoords(secondTile.pos, secondTile.rot));
+//    //Debug.Log("overlap second tile with marked pyramidSurround " + overlapMarkedPyramidSurroundWithSecondTile); // OK
+//
+//    drawTileFromSurround(test2);
+//
+//    if (!overlapMarkedPyramidSurroundWithSecondTile)
+//    {
+//        //surroundRootNode.next = new node(secondTile);
+//        addNodeFirstIn(secondTile);
+//        markPyramidSurroundWithNewTile(secondTile);
+//    }
+//}
+
+//void tilingStep(int neighborPos)
+//{
+//    //steps -> called in update...
+//
+//    posRot pr = neighborTilePositions[neighborPos];
+//
+//    if (!calculateOverlapSTrue(pyramidSurround, generateSingleTilePyramidCoords(pr.pos, pr.rot)))
+//    {
+//        node n = new node(pr);
+//        if (activeNode != null)
+//        {
+//            activeNode.addNode(n);
+//            activeNode = n;
+//        }
+//        else
+//        {
+//            surroundRootNode = n;
+//            activeNode = n;
+//        }
+//
+//        markPyramidSurroundWithNewTile(pr);
+//        //Debug.Log("tilingLoop tile: (" + pr.pos.x + ", " + pr.pos.y + ", " + pr.pos.z + "), rot: " + pr.rot);
+//    }
+//}
+
+//void calculateTiling(int step)
+//{
+//    posRot currentPosRot;
+//    if (activeNode.next != null)
+//    {
+//        currentPosRot = activeNode.next.placement;
+//    }
+//    else
+//    {
+//        currentPosRot = activeNode.placement;
+//    }
+//
+//    List<posRot> possibleNextPositions = new List<posRot>();
+//
+//
+//    if (!calculateOverlapSTrue(pyramidSurround, generateSingleTilePyramidCoords(neighborTilePositions[step].pos, neighborTilePositions[step].rot)))
+//    {
+//        possibleNextPositions.Add(neighborTilePositions[step]);
+//    }
+//}
