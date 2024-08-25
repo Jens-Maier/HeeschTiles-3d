@@ -47,37 +47,26 @@ namespace surroundNamespace
     {
         public posRot placement;
 
+        public List<pyramidCoord> currentPyramids;
+
         public node next;
+
+        public node parent;
+
+        public List<(posRot, int)> possibleTilePositions; // int overlap
+
+        public int currentNextIndex;
+
+        public int pyramidsFilled;
 
 
         public node(posRot pr)
         {
             placement = pr;
-            //next = new List<node>();
-        }
-
-        public void addNode(posRot pr)
-        {
-            if (next == null)
-            {
-                next = new node(pr);
-            }
-            else
-            {
-                next.addNode(pr);
-            }
-        }
-
-        public void addNode(node n)
-        {
-            if (next == null)
-            {
-                next = n;
-            }
-            else
-            {
-                next.addNode(n);
-            }
+            currentPyramids = new List<pyramidCoord>();
+            possibleTilePositions = new List<(posRot, int)>();
+            currentNextIndex = 0;
+            pyramidsFilled = 0;
         }
     }
 
@@ -114,8 +103,6 @@ namespace surroundNamespace
         {
             return new int3(a.x + b.x, a.y + b.y, a.z + b.z);
         }
-
-
     }
 
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
@@ -129,7 +116,7 @@ namespace surroundNamespace
 
         public List<pyramidCoord> pyramidSurroundForMesh;
 
-        public List<posRot> neighborTilePositions;
+        public List<(posRot, int)> neighborTilePositionsWithNrFacesTouchingRootTile;
 
         public List<Vector3> vertices;
         public List<int> triangles;
@@ -144,6 +131,9 @@ namespace surroundNamespace
 
         public List<Vector3> surroundVertices;
         public List<int> surroundTriangles;
+
+        public List<Vector3> bestSurroundVertices;
+        public List<int> bestSurroundTriangles;
 
         public Material material;
 
@@ -160,6 +150,7 @@ namespace surroundNamespace
         public int pyramidsFilled;
 
         public int numPyramidsToFill;
+        public int maxPyramidsFilled; // 157 -> 160
 
         public List<Vector3> debgLstRed;
         public List<Vector3> debgLstGreen;
@@ -172,9 +163,12 @@ namespace surroundNamespace
 
         List<posRot> finalTiles;
         List<pyramidCoord> finalPyramids;
+        [HideInInspector]
+        public bool redrawMesh;
+
+        public bool drawBestTilingOrEveryTiling;
 
         public int test;
-        public int test2;
 
         // Start is called before the first frame update
         void Start()
@@ -188,12 +182,13 @@ namespace surroundNamespace
 
             firstTileInLayer = new List<tile>();
             pyramids = new List<pyramidCoord>();
-            neighborTilePositions = new List<posRot>();
-            //drawThisTileFromSurround = 0;
+            neighborTilePositionsWithNrFacesTouchingRootTile = new List<(posRot, int)>();
 
+            redrawMesh = false;
             onlyOnce = false;
             drawTilePyramidCount = 0;
             pyramidsFilled = 0;
+            maxPyramidsFilled = 0;
 
             step = 0;
 
@@ -214,6 +209,10 @@ namespace surroundNamespace
             surroundVertices = new List<Vector3>();
             surroundTriangles = new List<int>();
 
+            bestSurroundVertices = new List<Vector3>();
+            bestSurroundTriangles = new List<int>();
+
+
             singleTilePyramidCoords = new List<pyramidCoord>[24 * 3]; // * 3]; // TODO: *3 for large tile!
             for (int i = 0; i < 24 * 3; i++)// * 3; i++)
             {
@@ -228,6 +227,7 @@ namespace surroundNamespace
             mesh = new Mesh();
 
             surroundMesh = new Mesh();
+
         }
 
         void OnDrawGizmos()
@@ -686,6 +686,8 @@ namespace surroundNamespace
 
         void generateMesh()
         {
+            triangles.Clear();
+            vertices.Clear();
             int pyramidCount = 0;
             foreach (pyramidCoord p in pyramids)
             {
@@ -858,10 +860,10 @@ namespace surroundNamespace
 
         void drawTileFromSurround(int n)
         {
-            posRot neighborTilePosRot = neighborTilePositions[n % neighborTilePositions.Count];
+            (posRot, int) neighborTilePosRot = neighborTilePositionsWithNrFacesTouchingRootTile[n % neighborTilePositionsWithNrFacesTouchingRootTile.Count];
 
-            List<pyramidCoord> pyramids = generateSingleTilePyramidCoords(neighborTilePosRot.pos, neighborTilePosRot.rot);
-            
+            List<pyramidCoord> pyramids = generateSingleTilePyramidCoords(neighborTilePosRot.Item1.pos, neighborTilePosRot.Item1.rot);
+
             foreach (pyramidCoord p in pyramids)
             {
                 surroundTriangles.Add(16 * drawTilePyramidCount + 0);
@@ -1035,6 +1037,22 @@ namespace surroundNamespace
         {
             surroundTriangles.Clear();
             surroundVertices.Clear();
+            //pyramidSurroundForMesh.Clear(); // test
+            if (activeNode != null)
+            {
+                if (activeNode.currentPyramids != null)
+                {
+                    pyramidSurroundForMesh.AddRange(activeNode.currentPyramids);
+                }
+                else
+                {
+                    Debug.Log("activeNode.currentPyramids is null!");
+                }
+            }
+            else
+            {
+                Debug.Log("activeNode is null!"); // ERROR HERE! activeNode is null!!!
+            }
 
             int pyramidCount = 0;
             foreach (pyramidCoord p in pyramidSurroundForMesh)
@@ -1207,6 +1225,198 @@ namespace surroundNamespace
             pyramidSurroundForMesh.Clear();
         }
 
+        void generateBestSurroundMesh()
+        {
+            bestSurroundTriangles.Clear();
+            bestSurroundVertices.Clear();
+            //pyramidSurroundForMesh.Clear(); // test
+            if (activeNode != null)
+            {
+                if (activeNode.currentPyramids != null)
+                {
+                    pyramidSurroundForMesh.AddRange(activeNode.currentPyramids);
+                }
+                else
+                {
+                    Debug.Log("activeNode.currentPyramids is null!");
+                }
+            }
+            else
+            {
+                Debug.Log("activeNode is null!"); // ERROR HERE! activeNode is null!!!
+            }
+
+            int pyramidCount = 0;
+            foreach (pyramidCoord p in pyramidSurroundForMesh)
+            {
+                bestSurroundTriangles.Add(16 * pyramidCount + 0);
+                bestSurroundTriangles.Add(16 * pyramidCount + 1);
+                bestSurroundTriangles.Add(16 * pyramidCount + 2);
+
+                bestSurroundTriangles.Add(16 * pyramidCount + 3);
+                bestSurroundTriangles.Add(16 * pyramidCount + 4);
+                bestSurroundTriangles.Add(16 * pyramidCount + 5);
+
+                bestSurroundTriangles.Add(16 * pyramidCount + 6);
+                bestSurroundTriangles.Add(16 * pyramidCount + 7);
+                bestSurroundTriangles.Add(16 * pyramidCount + 8);
+
+                bestSurroundTriangles.Add(16 * pyramidCount + 9);
+                bestSurroundTriangles.Add(16 * pyramidCount + 10);
+                bestSurroundTriangles.Add(16 * pyramidCount + 11);
+
+                bestSurroundTriangles.Add(16 * pyramidCount + 12);
+                bestSurroundTriangles.Add(16 * pyramidCount + 14);
+                bestSurroundTriangles.Add(16 * pyramidCount + 13);
+
+                bestSurroundTriangles.Add(16 * pyramidCount + 12);
+                bestSurroundTriangles.Add(16 * pyramidCount + 15);
+                bestSurroundTriangles.Add(16 * pyramidCount + 14);
+
+                pyramidCount += 1;
+
+                switch (p.pyramid)
+                {
+                    case 0:
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, -0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, -0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, -0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, -0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, 0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, 0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, 0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, 0.5f));// cw viewed from center
+                        break;
+                    case 1:
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, 0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, 0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, 0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, 0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, -0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, -0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, -0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, -0.5f));// cw viewed from center
+                        break;
+                    case 2:
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, -0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, -0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, -0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, -0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, 0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, 0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, 0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, 0.5f));// cw viewed from center
+                        break;
+                    case 3:
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, -0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, -0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, -0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, -0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, 0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, 0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, 0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, 0.5f));// cw viewed from center
+                        break;
+                    case 4:
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, 0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, 0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, 0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, 0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, 0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, 0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, 0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, 0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, 0.5f));// cw viewed from center
+                        break;
+                    case 5:
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, -0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, -0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, -0.5f));//
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, -0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, -0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, -0.5f));
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, -0.5f));
+
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, 0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, 0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(-0.5f, -0.5f, -0.5f));//
+                        bestSurroundVertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, -0.5f));// cw viewed from center
+                        break;
+                    default:
+                        Debug.LogError("ERROR invalid pyramid!");
+                        break;
+                }
+            }
+            pyramidSurroundForMesh.Clear();
+        }
+
         void getAllPyramids()
         {
             pyramids.AddRange(firstTileInLayer[0].pyramidCoords);
@@ -1217,8 +1427,14 @@ namespace surroundNamespace
         }
 
 
-        void calculateAllNeighborTilePositions(List<pyramidCoord> pyramidCluster)
+
+        // TODO: more weight to neighborPyramids that share more faces -> sort by nr faces touch root tile !!!
+        //
+        List<(posRot, int)> calculateAllNeighborTilePositions(List<pyramidCoord> pyramidCluster)
         {
+            Debug.Log("in calculateAllNeighborTilePositions() pyramidCluster count: " + pyramidCluster.Count);
+
+            List<(posRot, int)> newNeighborTilePositions = new List<(posRot, int)>();
             List<int3> neighborCubes = new List<int3>(); // all possible neighbor cube positions 
 
             foreach (pyramidCoord p in pyramidCluster)
@@ -1231,13 +1447,13 @@ namespace surroundNamespace
                         {
                             //if (!(i == 0 && j == 0 && k == 0)) // for single cube // TODO : for 3 cubes...
                             //{
-                                if (!neighborCubes.Contains(add(p.pos, new int3(i, j, k))))
-                                {
-                                    neighborCubes.Add(add(p.pos, new int3(i, j, k)));
-                                    
-                                    int3 newpos = add(p.pos, new int3(i, j, k));
-                                    //debgLstRed.Add(new Vector3((float)newpos.x, (float)newpos.y, (float)newpos.z));
-                                }
+                            if (!neighborCubes.Contains(add(p.pos, new int3(i, j, k))))
+                            {
+                                neighborCubes.Add(add(p.pos, new int3(i, j, k)));
+
+                                int3 newpos = add(p.pos, new int3(i, j, k));
+                                //debgLstRed.Add(new Vector3((float)newpos.x, (float)newpos.y, (float)newpos.z));
+                            }
                             //}
                         }
                     }
@@ -1245,36 +1461,246 @@ namespace surroundNamespace
             }
 
             //List<posRot> neighborTilePos = new List<posRot>(); // all possible neighbor tile positons and rotations around cluster -> moved to variables
-            neighborTilePositions.Clear();
+            //neighborTilePositions.Clear();
 
             //Debug.Log("neighborCubes.Count " + neighborCubes.Count); // 84 ((should be 42))
             foreach (int3 neighborCubePos in neighborCubes)
             {
                 List<pyramidCoord> testTilePyramidCoords = new List<pyramidCoord>();
-                for (int rot = 0; rot < 24 * 3; rot++) // TODO: *3 for large tile
+                for (int rot = 0; rot < 24 * 3; rot++) // *3 for large tile
                 {
                     testTilePyramidCoords = generateSingleTilePyramidCoords(neighborCubePos, rot); // center = rot / 24
-                    bool overlap = false;
-                    foreach (pyramidCoord testPC in testTilePyramidCoords)
+
+                    int overlap = 0;
+
+                    int nrFacesTouchRootTile = 0;
+
+                    if (!calculateOverlap(pyramidCluster, testTilePyramidCoords)) // TEST...
                     {
-                        if (calculateOverlap(pyramids, testTilePyramidCoords))
+                        foreach (pyramidCoord testPC in testTilePyramidCoords)
                         {
-                            overlap = true;
-                            break;
+                            if (pyramidSurround.Contains((testPC, true)) || pyramidSurround.Contains((testPC, false))) // ???
+                            {
+                                overlap += 1;
+
+                                // TODO: more weight to neighborPyramids that share more faces -> sort by nr faces touch root tile !!!
+
+                                //              Y
+                                //              ^
+                                //              |
+                                //              +------> Z
+                                //             /
+                                //            X  
+
+                                //                  2 1
+                                //                  |/
+                                //              5 --+-- 4
+                                //                 /|
+                                //                0 3  
+
+                                switch (testPC.pyramid)
+                                {
+                                    case 0:
+                                        // 2, 3, 4, 5, x+1: 1
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 2)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 3)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 4)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 5)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(new int3(testPC.pos.x + 1, testPC.pos.y, testPC.pos.z), 1)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        break;
+                                    case 1:
+                                        // 2, 3, 4, 5, x-1: 0
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 2)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 3)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 4)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 5)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(new int3(testPC.pos.x - 1, testPC.pos.y, testPC.pos.z), 0)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        break;
+                                    case 2:
+                                        // 0, 1, 4, 5, y+1: 3
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 0)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 1)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 4)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 5)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(new int3(testPC.pos.x, testPC.pos.y + 1, testPC.pos.z), 3)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        break;
+                                    case 3:
+                                        // 0, 1, 4, 5, y-1: 2
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 0)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 1)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 4)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 5)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(new int3(testPC.pos.x, testPC.pos.y - 1, testPC.pos.z), 2)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        break;
+                                    case 4:
+                                        // 0, 1, 2, 3, z+1: 5
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 0)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 1)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 2)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 3)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(new int3(testPC.pos.x, testPC.pos.y, testPC.pos.z + 1), 5)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        break;
+                                    case 5:
+                                        // 0, 1, 2, 3, z-1: 4
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 0)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 1)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 2)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(testPC.pos, 3)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        if (pyramidCluster.Contains(new pyramidCoord(new int3(testPC.pos.x, testPC.pos.y, testPC.pos.z - 1), 4)))
+                                        {
+                                            nrFacesTouchRootTile += 1;
+                                        }
+                                        break;
+                                }
+                            }
                         }
                     }
-                    if (overlap == false)
+                    if (overlap > 0)
                     {
                         // at least one pyramid must touch cluster -> at least one overlap with pyramid surround
-                        if (calculateOverlapSTrueFalse(pyramidSurround, testTilePyramidCoords)) // ERROR HERE !!!
+                        int nrOverlapPyramids = calculateNumberPyramidsOverlapSTrueFalse(pyramidSurround, testTilePyramidCoords);
+                        if (nrOverlapPyramids > 0)
                         {
-                            neighborTilePositions.Add(new posRot(neighborCubePos, rot));
+                            addSorted(newNeighborTilePositions, new posRot(neighborCubePos, rot), nrFacesTouchRootTile); //   test only nr faces touch...TODO: with overlap...
+                            //addSorted(newNeighborTilePositions, new posRot(neighborCubePos, rot), overlap); // overlap     // ^ test only nr faces touch...TODO: with overlap...
+
+                            //newNeighborTilePositions.Add((new posRot(neighborCubePos, rot), 0));
+
                             //Debug.Log("neighborTilePos: " + neighborCubePos.x + ", " + neighborCubePos.y + ", " + neighborCubePos.z + ", rot: " + rot);
                         }
 
                     }
                 }
             }
+            // sort list by number overlap pyramids -> insert sorted !!!
+
+            // TODO: more weight to neighborPyramids that share more faces -> sort by nr faces touch root tile !!!
+
+
+
+            Debug.Log("in calculateAllNeighborTilePositions() returns newNeighborTilePositions.Count = " + newNeighborTilePositions.Count);
+
+            //foreach ((posRot,int) pr in newNeighborTilePositions)
+            //{
+            //    Debug.Log("(" + pr.Item1.pos.x + ", " + pr.Item1.pos.y + ", " + pr.Item1.pos.z + ") | overlap: " + pr.Item2);
+            //}
+
+            return newNeighborTilePositions;
+        }
+
+        List<(posRot, int)> addSorted(List<(posRot, int)> neighborTilePositions, posRot newTile, int overlap)
+        {
+            if (neighborTilePositions.Count > 0)
+            {
+                if (overlap > neighborTilePositions[0].Item2)
+                {
+                    neighborTilePositions.Insert(0, (newTile, overlap));
+                }
+                else
+                {
+                    for (int i = 1; i < neighborTilePositions.Count; i++)
+                    {
+                        if (overlap > neighborTilePositions[i].Item2)
+                        {
+                            neighborTilePositions.Insert(i - 1, (newTile, overlap));
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                neighborTilePositions.Add((newTile, overlap));
+            }
+
+            return neighborTilePositions;
         }
 
         node addNodeFirstIn(posRot pr)
@@ -1291,39 +1717,250 @@ namespace surroundNamespace
             surroundRootNode = next;
         }
 
-        IEnumerator calculateTilingRecursive(List<posRot> currentTiles, List<pyramidCoord> currentPyramids, int stepCount)
+        List<(posRot, int)> recalculatePossibleTilePositions(List<(posRot, int)> possibleTilePositions, List<pyramidCoord> newPyramids, posRot placement)
         {
-            //yield return currentPyramids;
 
-            List<posRot> possibleNextPositions = new List<posRot>(neighborTilePositions); // copy of List of all neighborTilePositions
-
-            foreach (posRot pr in currentTiles)
+            Debug.Log("old possibleTilePositions count " + possibleTilePositions.Count); // ERROR count = 0 !!!
+            List<(posRot, int)> newPossibleTilePositions = new List<(posRot, int)>();
+            foreach ((posRot, int) p in possibleTilePositions)
             {
-                if (neighborTilePositions.Contains(pr))
+                if ((!calculateOverlap(newPyramids, generateSingleTilePyramidCoords(p.Item1.pos, p.Item1.rot))) &&
+                    (!(placement.pos.x == p.Item1.pos.x && placement.pos.y == p.Item1.pos.y && placement.pos.z == p.Item1.pos.z)))
                 {
-                    possibleNextPositions.Remove(pr);
+                    newPossibleTilePositions.Add(p);
                 }
             }
+            Debug.Log("recalculatePossibleTilePositions() positions count " + newPossibleTilePositions.Count); // ERROR count = 0 !!!
+            return newPossibleTilePositions;
+        }
 
-            //yield return currentPyramids; //--> all tile positions
-
-            foreach (posRot pr in possibleNextPositions)
+        List<pyramidCoord> getAllFaceNeighborPyramids(pyramidCoord p)
+        {
+            List<pyramidCoord> faceNeighbors = new List<pyramidCoord>();
+            switch (p.pyramid)
             {
-                if (!calculateOverlap(currentPyramids, generateSingleTilePyramidCoords(pr.pos, pr.rot)))
-                {
-                    currentTiles.Add(pr);
-
-                    currentPyramids.AddRange(generateSingleTilePyramidCoords(pr.pos, pr.rot));
-
-                    //yield return currentPyramids;
-
-                    //StartCoroutine(calculateTilingRecursive(currentTiles, currentPyramids, stepCount + 1));
-
-                    yield return startUnifyCoroutine(calculateTilingRecursive(currentTiles, currentPyramids, stepCount + 1));
-                }
-                //yield return currentPyramids; // --> all tile positions
+                case 0:
+                    // 2, 3, 4, 5, x+1: 1
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 2));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 3));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 4));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 5));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x + 1, p.pos.y, p.pos.z), 1));
+                    break;
+                case 1:
+                    // 2, 3, 4, 5, x-1: 0
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 2));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 3));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 4));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 5));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x - 1, p.pos.y, p.pos.z), 0));
+                    break;
+                case 2:
+                    // 0, 1, 4, 5, y+1: 3
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 0));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 1));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 4));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 5));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y + 1, p.pos.z), 3));
+                    break;
+                case 3:
+                    // 0, 1, 4, 5, y-1: 2
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 0));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 1));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 4));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 5));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y - 1, p.pos.z), 2));
+                    break;
+                case 4:
+                    // 0, 1, 2, 3, z+1: 5
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 0));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 1));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 2));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 3));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z + 1), 5));
+                    break;
+                case 5:
+                    // 0, 1, 2, 3, z-1: 4
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 0));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 1));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 2));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z), 3));
+                    faceNeighbors.Add(new pyramidCoord(new int3(p.pos.x, p.pos.y, p.pos.z - 1), 4));
+                    break;
             }
-            yield return currentPyramids; // --> full cluster
+            return faceNeighbors;
+        }
+
+
+        bool detectHoles(List<pyramidCoord> allCurrentPyramidsOfSurround)
+        {
+            bool b = true;
+            foreach ((pyramidCoord, bool) p in pyramidSurround)
+            {
+                if (!allCurrentPyramidsOfSurround.Contains(p.Item1)) // p not in current -> p not yet filled
+                {
+                    List<pyramidCoord> neighborPyramids = getAllFaceNeighborPyramids(p.Item1);
+
+                    // all neighbors of p are filled with current surround pyramids or rootTile
+                    // -> at least one NOT filled with current surround pyramids and root tile
+                    foreach (pyramidCoord faceNeighborOfP in neighborPyramids)
+                    {
+                        if (!firstTileInLayer[0].pyramidCoords.Contains(faceNeighborOfP) && !allCurrentPyramidsOfSurround.Contains(faceNeighborOfP))
+                        {
+                            b = false; // -> one neighbor path open -> no hole
+                            return b;
+                        }
+
+                        //if (firstTileInLayer[0].Contains(faceNeighborOfP) || allCurrentPyramidsOfSurround.Contains(faceNeighborOfP))
+                        //{
+                        //    // -> this way is blocked
+                        //}
+                    }
+                }
+            }
+            return b;
+        }
+
+        //copy List / clone List: new List<posRot>(oldList);
+
+        void tilingStep()
+        {
+            Debug.Log("tilingStep()");
+
+            // TODO: rate tile placements by # filled pyramids -> sort possibletilepositions
+
+            node newNode;
+
+            if (activeNode != null)
+            {
+                if (activeNode.possibleTilePositions.Count > 0 && activeNode.possibleTilePositions.Count > activeNode.currentNextIndex + 1)
+                {
+                    Debug.Log("next step:");
+
+                    newNode = new node(activeNode.possibleTilePositions[activeNode.currentNextIndex].Item1);
+
+                    //newNode.currentNextIndex = activeNode.currentNextIndex; // test moved up here
+
+                    activeNode.currentNextIndex = (activeNode.currentNextIndex + 1) % activeNode.possibleTilePositions.Count;
+
+                    List<pyramidCoord> newPyramids = generateSingleTilePyramidCoords(newNode.placement.pos, newNode.placement.rot);
+
+                    List<pyramidCoord> newPyramidsFilled = pyramidsOverlapSTrueFalse(pyramidSurround, newPyramids);
+
+                    List<pyramidCoord> allPyramids = new List<pyramidCoord>(activeNode.currentPyramids);
+                    allPyramids.AddRange(newPyramids);
+
+                    // TODO: detect holes !!!
+                    //bool hole = detectHoles(allPyramids);
+
+                    newNode.pyramidsFilled = activeNode.pyramidsFilled + newPyramidsFilled.Count;
+
+                    //Debug.Log("number pyramids filled: " + newNode.pyramidsFilled);
+                    pyramidsFilled = newNode.pyramidsFilled;
+
+                    if (!drawBestTilingOrEveryTiling) // TODO: snap back to best tiling !
+                    {
+                        // redraw every step!
+                        redrawMesh = true;
+                        generateSurroundMesh(); // test
+                    }
+                    else
+                    {
+                        generateBestSurroundMesh();
+                        //redrawMesh = true;
+                        if (maxPyramidsFilled <= pyramidsFilled)
+                        {
+                            redrawMesh = true;
+                            //generateBestSurroundMesh(); // test
+
+                            maxPyramidsFilled = pyramidsFilled; // 157 -> 160 (sorted neighborTilePositions) -> 149 (sorted overlap) -> 154 ( test moved up here) -> 41 BROKEN !!!
+
+
+                            Debug.Log(pyramidsFilled + " pyramids filled!"); // ERROR is called but mesh is not re-drawn !!!
+                        }
+
+                    }
+
+                    //  more weight to neighborPyramids that share more faces -> sort by nr faces touch root tile !!!
+
+                    if (newNode.pyramidsFilled == numPyramidsToFill)
+                    {
+                        Debug.Log("SUCCESS! Tiling found !!!");
+                    }
+
+                    //newNode.currentPyramids = new List<pyramidCoord>(activeNode.currentPyramids); //clone list /  copy list! //  new List<posRot>(oldList);
+                    //newNode.currentPyramids.AddRange(newPyramids);
+                    newNode.currentPyramids = allPyramids;
+                    newNode.parent = activeNode;
+                    activeNode.next = newNode;
+
+                    newNode.possibleTilePositions = recalculatePossibleTilePositions(activeNode.possibleTilePositions, newPyramids, newNode.placement);
+
+                    newNode.currentNextIndex = activeNode.currentNextIndex; // test moved up
+
+                    // TODO: newNode.currentNextIndex = ??? // TODO !!!  new node(...) -> currentNextIndex set to 0 !!! -> set in recalculatePossibleTilePositions
+
+                    activeNode = newNode;
+                    Debug.Log("activeNode = newNode in tilingStep()");
+                }
+                else
+                {
+                    // TODO: backtrack ...
+                    //Debug.Log("activeNode before backtrack: (" + activeNode.placement.pos.x + ", " + activeNode.placement.pos.y + ", " + activeNode.placement.pos.z + "), rot: " + activeNode.placement.rot);
+                    //Debug.Log("activeNode before backtrack currentPyramids count: " + activeNode.currentPyramids.Count);
+
+                    activeNode = activeNode.parent;
+                    activeNode.next = null;
+
+                    //activeNode.currentNextIndex = (activeNode.currentNextIndex + 1) % activeNode.possibleTilePositions.Count;
+
+                    if (activeNode.possibleTilePositions.Count > activeNode.currentNextIndex + 1)
+                    {
+                        activeNode.currentNextIndex += 1; // TODO: recursive backtrack()...
+                    }
+
+                    //Debug.Log("backtrack");
+                    //Debug.Log("activeNode after backtrack: (" + activeNode.placement.pos.x + ", " + activeNode.placement.pos.y + ", " + activeNode.placement.pos.z + "), rot: " + activeNode.placement.rot);
+                    //Debug.Log("activeNode.next after backtrack: " + activeNode.next)
+
+                    Debug.Log("activeNode after backtrack currentPyramids count: " + activeNode.currentPyramids.Count); // ERROR is same as before!
+                }
+
+            }
+            else // first tile
+            {
+                Debug.Log("first tile!");
+                Debug.Log("pyramids count: " + pyramids.Count); //19 OK
+                neighborTilePositionsWithNrFacesTouchingRootTile = calculateAllNeighborTilePositions(pyramids);
+
+                newNode = new node(neighborTilePositionsWithNrFacesTouchingRootTile[0].Item1);
+
+                Debug.Log("neighborTilePositions[0]: (" + neighborTilePositionsWithNrFacesTouchingRootTile[0].Item1.pos.x + ", " + neighborTilePositionsWithNrFacesTouchingRootTile[0].Item1.pos.y + ", " + neighborTilePositionsWithNrFacesTouchingRootTile[0].Item1.pos.z + "), Rot: " + neighborTilePositionsWithNrFacesTouchingRootTile[0].Item1.rot);
+
+                List<pyramidCoord> newPyramids = generateSingleTilePyramidCoords(newNode.placement.pos, newNode.placement.rot);
+
+                newNode.currentPyramids = generateSingleTilePyramidCoords(newNode.placement.pos, newNode.placement.rot);
+                List<(posRot, int)> newNodePossibleTilePositions = new List<(posRot, int)>();
+                newNode.possibleTilePositions = recalculatePossibleTilePositions(newNodePossibleTilePositions, newPyramids, neighborTilePositionsWithNrFacesTouchingRootTile[0].Item1);
+                List<pyramidCoord> rootAndFirstTilePyramids = new List<pyramidCoord>();
+
+                rootAndFirstTilePyramids.AddRange(pyramids); // ERROR here ???
+                rootAndFirstTilePyramids.AddRange(newPyramids);
+
+
+                // ???
+                newNode.possibleTilePositions = calculateAllNeighborTilePositions(rootAndFirstTilePyramids);
+                //newNode.possibleTilePositions = recalculatePossibleTilePositions(activeNode.possibleTilePositions, newPyramids, newNode.placement);
+
+                newNode.possibleTilePositions = recalculatePossibleTilePositions(newNode.possibleTilePositions, newPyramids, newNode.placement);
+
+                activeNode = newNode;
+                Debug.Log("activeNode = newNode in tilingStep() -> first tile");
+                //newNode.possibleTilePositions = calculateAllNeighborTilePositions(newNode.currentPyramids);
+
+                redrawMesh = true;
+            }
+
         }
 
         // -----
@@ -1342,7 +1979,7 @@ namespace surroundNamespace
         //}
         // -----
 
-        
+
 
         void markPyramidSurroundWithNewTile(posRot newTile)
         {
@@ -1363,7 +2000,7 @@ namespace surroundNamespace
                     //Debug.Log("markPyramidSurroundWithNewTile (" + pyramidSurround[i].Item1.pos.x + ", " + pyramidSurround[i].Item1.pos.y + ", " + pyramidSurround[i].Item1.pos.z + ")"); // 3 times executed! (???)
 
                     //debgLstGreen.Add(new Vector3((float)pyramidSurround[i].Item1.pos.x, (float)pyramidSurround[i].Item1.pos.y, (float)pyramidSurround[i].Item1.pos.z));
-                    
+
                     debgPyramidsGreen.Add(pyramidSurround[i].Item1);
                 }
             }
@@ -1408,6 +2045,7 @@ namespace surroundNamespace
             return b;
         }
 
+
         bool calculateOverlapSTrue(List<(pyramidCoord, bool)> cluster, List<pyramidCoord> tile)
         {
             bool b = false;
@@ -1425,21 +2063,34 @@ namespace surroundNamespace
             return b;
         }
 
-        bool calculateOverlapSTrueFalse(List<(pyramidCoord, bool)> cluster, List<pyramidCoord> tile)
+        int calculateNumberPyramidsOverlapSTrueFalse(List<(pyramidCoord, bool)> cluster, List<pyramidCoord> tile)
         {
-            bool b = false;
+            int n = 0;
             foreach (pyramidCoord t in tile)
             {
                 if (cluster.Contains((t, true)) || cluster.Contains((t, false)))
                 {
-                    b = true;
+                    n += 1;
                 }
                 //else
                 //{
                 //    //Debug.Log("overlap!");
                 //}
             }
-            return b;
+            return n;
+        }
+
+        List<pyramidCoord> pyramidsOverlapSTrueFalse(List<(pyramidCoord, bool)> pyramidSurround, List<pyramidCoord> newPyramids)
+        {
+            List<pyramidCoord> overlap = new List<pyramidCoord>();
+            foreach ((pyramidCoord, bool) p in pyramidSurround)
+            {
+                if (newPyramids.Contains(p.Item1))
+                {
+                    overlap.Add(p.Item1);
+                }
+            }
+            return overlap;
         }
 
         void calculateAllNeighborPyramids(List<pyramidCoord> pyramidCluster)
@@ -1452,7 +2103,7 @@ namespace surroundNamespace
                     if (!pyramidSurround.Contains((new pyramidCoord(p.pos, (p.pyramid + i) % 6), false)) &&
                         (!pyramidCluster.Contains(new pyramidCoord(p.pos, (p.pyramid + i) % 6))))
                     {
-                        pyramidSurround.Add((new pyramidCoord(p.pos, (p.pyramid + i) % 6), false));
+                        pyramidSurround.Add((new pyramidCoord(p.pos, (p.pyramid + i) % 6), false)); // added double ... ???
                     }
                 }
 
@@ -1632,7 +2283,7 @@ namespace surroundNamespace
         }
 
 
-        // in Start: StartCoroutine(startUnifyCoroutine(calculateTilingRecursive(currentTiles, currentPyramids, 0)));
+        // in Start: StartCoroutine(startUnifyCoroutine(calculateTilingRecursive(0)));
 
         public IEnumerator startUnifyCoroutine(IEnumerator target)
         {
@@ -1644,7 +2295,7 @@ namespace surroundNamespace
                     //pyramidSurroundForMesh = target.Current;
                     generateSurroundMesh(); // !!!
                 }
-                
+
                 yield return target.Current;
             }
         }
@@ -1654,162 +2305,79 @@ namespace surroundNamespace
         {
             if (onlyOnce == false)
             {
-                // ---- TEST ----
-                //StartCoroutine(startUnifyCoroutine(coroutineTest()));
-
-                // --------------
-
                 onlyOnce = true;
 
                 pyramids.Clear();
                 firstTileInLayer.Clear();
                 firstTileInLayer.Add(new tile(new int3(0, 0, 0), 0, this));
-                
-                getAllPyramids();
-                
-                calculateAllNeighborPyramids(pyramids);
 
-                calculateAllNeighborTilePositions(pyramids);
-                Debug.Log("neighbor tile positions: " + neighborTilePositions.Count);
-                
-                List<posRot> currentTiles = new List<posRot>();
-                List<pyramidCoord> currentPyramids = new List<pyramidCoord>();
-
-                StartCoroutine(startUnifyCoroutine(calculateTilingRecursive(currentTiles, currentPyramids, 0)));
-
-                // async test
-                //Task.Start(myTask);
-                
-                mesh.Clear(false);
-                surroundVertices.Clear();
-                surroundTriangles.Clear();
-                                
-                generateMesh();
-                
-                //generateSurroundMesh();
-                
-                Debug.Log("final tiles: ");
-                foreach (posRot p in finalTiles)
-                {
-                    Debug.Log("pos: (" + p.pos.x + ", " + p.pos.y + ", " + p.pos.z + "), rot: " + p.rot);
-                }
-            }
-
-            //if (myTask.IsCompleted)
-            //{
-
+                getAllPyramids(); // pyramids (root tile)
+                generateMesh(); // pyramids (root tile)
                 mesh.SetVertices(vertices);
-                //mesh.SetUVs(0, UVs);
-                //mesh.triangles = triangles.ToArray();
-
                 mesh.SetTriangles(triangles, 0);
-
-                //mesh.SetNormals(normals);
                 mesh.RecalculateNormals();
-
                 meshFilter.mesh = mesh;
 
-                // validate triangles
-                int maxTriangleIndex = 0;
-                
-                foreach (int t in triangles)
+                calculateAllNeighborPyramids(pyramids); // initialised with (pyramidCoord, false)
+
+                Debug.Log("pyramidSurround count: " + pyramidSurround.Count);
+
+                neighborTilePositionsWithNrFacesTouchingRootTile = calculateAllNeighborTilePositions(pyramids);
+
+                Debug.Log("neighborTilePositions count: " + neighborTilePositionsWithNrFacesTouchingRootTile.Count);
+            }
+            else
+            {
+                // --- TEST visualise one neighbor tile
+                //
+                //posRot neighborTestPos = neighborTilePositionsWithNrFacesTouchingRootTile[test].Item1;
+                //List<pyramidCoord> neighborTestPyramids = generateSingleTilePyramidCoords(neighborTestPos.pos, neighborTestPos.rot);
+                //pyramidSurroundForMesh.Clear();
+                //pyramidSurroundForMesh.AddRange(neighborTestPyramids);
+                //
+                //generateSurroundMesh(); // gets currentPyramids from activeNode into pyramidSurroundForMesh! pyramidSurroundForMesh.AddRange(activeNode.currentPyramids);
+                //surroundMesh.SetVertices(surroundVertices);
+                //surroundMesh.SetTriangles(surroundTriangles, 0);
+                //surroundMesh.RecalculateNormals();
+                //surroundMeshFilter.mesh = surroundMesh;
+                //
+                // ---
+
+                tilingStep();
+
+                if (redrawMesh == true)
                 {
-                    if (t > maxTriangleIndex)
+                    generateSurroundMesh();
+                    // validate triangles
+                    int maxTriangleIndex = 0;
+
+                    for (int t = 0; t < surroundTriangles.Count; t++)
                     {
-                        maxTriangleIndex = t;
+                        if (surroundTriangles[t] > maxTriangleIndex)
+                        {
+                            maxTriangleIndex = surroundTriangles[t];
+                        }
                     }
+
+                    int vertexCount = surroundVertices.Count;
+
+                    if (maxTriangleIndex < vertexCount)
+                    {
+                        surroundMesh.SetVertices(surroundVertices);
+                        surroundMesh.SetTriangles(surroundTriangles, 0);
+                        surroundMesh.RecalculateNormals();
+
+                        surroundMeshFilter.mesh = surroundMesh;
+                        Debug.Log("new Mesh!");
+                    }
+                    redrawMesh = false;
                 }
+
                 
-                int vertexCount = surroundVertices.Count;
-                
-                if (maxTriangleIndex < vertexCount)
-                {
-                    surroundMesh.SetVertices(surroundVertices);
-                    surroundMesh.SetTriangles(surroundTriangles, 0);
-                    surroundMesh.RecalculateNormals();
 
-                    surroundMeshFilter.mesh = surroundMesh;
-                }
-
-            //}
-
+            }
         }
+
+
     }
-
 }
-
-//void calculateSurroundTiling(int neighborTileIndex) // off
-//{
-//    //Debug.Log("in calculateSurroundTiling(): neighborTilePos count: " + neighborTilePositions.Count); //
-//
-//    List<pyramidCoord> surroundPyramids = new List<pyramidCoord>();
-//   
-//    posRot firstTile = neighborTilePositions[neighborTileIndex];
-//
-//    //surroundRootNode = new node(firstTile);
-//    addNodeFirstIn(firstTile);
-//
-//    drawTileFromSurround(neighborTileIndex);
-//
-//    markPyramidSurroundWithNewTile(firstTile); // OK
-//
-//    posRot secondTile = neighborTilePositions[test2];
-//
-//    bool overlapMarkedPyramidSurroundWithSecondTile = calculateOverlapSTrue(pyramidSurround, generateSingleTilePyramidCoords(secondTile.pos, secondTile.rot));
-//    //Debug.Log("overlap second tile with marked pyramidSurround " + overlapMarkedPyramidSurroundWithSecondTile); // OK
-//
-//    drawTileFromSurround(test2);
-//
-//    if (!overlapMarkedPyramidSurroundWithSecondTile)
-//    {
-//        //surroundRootNode.next = new node(secondTile);
-//        addNodeFirstIn(secondTile);
-//        markPyramidSurroundWithNewTile(secondTile);
-//    }
-//}
-
-//void tilingStep(int neighborPos)
-//{
-//    //steps -> called in update...
-//
-//    posRot pr = neighborTilePositions[neighborPos];
-//
-//    if (!calculateOverlapSTrue(pyramidSurround, generateSingleTilePyramidCoords(pr.pos, pr.rot)))
-//    {
-//        node n = new node(pr);
-//        if (activeNode != null)
-//        {
-//            activeNode.addNode(n);
-//            activeNode = n;
-//        }
-//        else
-//        {
-//            surroundRootNode = n;
-//            activeNode = n;
-//        }
-//
-//        markPyramidSurroundWithNewTile(pr);
-//        //Debug.Log("tilingLoop tile: (" + pr.pos.x + ", " + pr.pos.y + ", " + pr.pos.z + "), rot: " + pr.rot);
-//    }
-//}
-
-//void calculateTiling(int step)
-//{
-//    posRot currentPosRot;
-//    if (activeNode.next != null)
-//    {
-//        currentPosRot = activeNode.next.placement;
-//    }
-//    else
-//    {
-//        currentPosRot = activeNode.placement;
-//    }
-//
-//    List<posRot> possibleNextPositions = new List<posRot>();
-//
-//
-//    if (!calculateOverlapSTrue(pyramidSurround, generateSingleTilePyramidCoords(neighborTilePositions[step].pos, neighborTilePositions[step].rot)))
-//    {
-//        possibleNextPositions.Add(neighborTilePositions[step]);
-//    }
-//}
