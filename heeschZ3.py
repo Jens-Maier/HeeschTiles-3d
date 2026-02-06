@@ -1,5 +1,23 @@
+
+# source .venv/bin/activate
+# python3 heeschZ3.py
+
+
 from ortools.sat.python import cp_model
 from collections import defaultdict
+from typing import List, Set, Tuple
+
+# Type alias for a pyramid coordinate for better readability
+PyramidCoord = Tuple[int, int, int, int]
+Position = Tuple[int, int, int]
+
+# Pyramid rotation mappings
+ROT_MAP_0_TRUE = {0: 0, 1: 1, 2: 5, 3: 4, 4: 2, 5: 3}
+ROT_MAP_0_FALSE = {0: 0, 1: 1, 2: 4, 3: 5, 4: 3, 5: 2}
+ROT_MAP_1_TRUE = {0: 4, 1: 5, 2: 2, 3: 3, 4: 1, 5: 0}
+ROT_MAP_1_FALSE = {0: 5, 1: 4, 2: 2, 3: 3, 4: 0, 5: 1}
+ROT_MAP_2_TRUE = {0: 3, 1: 2, 2: 0, 3: 1, 4: 4, 5: 5}
+ROT_MAP_2_FALSE = {0: 2, 1: 3, 2: 1, 3: 0, 4: 4, 5: 5}
 
 def generateTilePyramids(x, y, z, rot):
     """
@@ -39,81 +57,143 @@ def generateTilePyramids(x, y, z, rot):
         final_pyramids.append((px + x, py + y, pz + z, p_type))
     return final_pyramids
 
-def rotatePyramids(pyr_coords, axisxyz, direction, center):
-    
-    #Rotates a list of pyramid coordinates around a center point.
-    #
-    #Args:
-    #    pyr_coords: List of tuples (x, y, z, pyramid).
-    #    axisxyz: 0 for X-axis, 1 for Y-axis, 2 for Z-axis.
-    #    direction: Boolean, True for one direction, False for the other.
-    #    center: Tuple (cx, cy, cz).
-    #    
-    #Returns:
-    #    List of rotated pyramid coordinates (x, y, z, pyramid).
-    
-    # NOTE: The rotation logic is intentionally designed for a left-handed
-    # coordinate system (e.g., for visualization in Unity). The transformations
-    # may appear unusual for a right-handed system but are correct for their
-    # intended purpose.
+def rotatePyramids(
+    pyr_coords: List[PyramidCoord], 
+    axis: int, 
+    direction: bool, 
+    center: Position
+) -> List[PyramidCoord]:
+    """
+    Rotates a list of pyramid coordinates around a center point.
+
+    Args:
+        pyr_coords: A list of pyramid coordinates.
+        axis: The axis of rotation (0 for x, 1 for y, 2 for z).
+        direction: The direction of rotation (True for positive, False for negative).
+        center: The center of rotation as a tuple (x, y, z).
+
+    Returns:
+        A new list of rotated pyramid coordinates.
+    """
     new_coords = []
-    cx, cy, cz = center
+    center_x, center_y, center_z = center
 
-    if axisxyz == 0:  # X-axis
-        if direction:
-            # x -> x
-            # y -> -z
-            # z -> y
-            pyr_map = {0: 0, 1: 1, 2: 5, 3: 4, 4: 2, 5: 3}
-            for x, y, z, p in pyr_coords:
-                new_pyr = pyr_map.get(p, -1)
-                new_coords.append((x, cy + (z - cz), cz - (y - cy), new_pyr))
-        else:
-            # x -> x
-            # y -> z
-            # z -> -y
-            pyr_map = {0: 0, 1: 1, 2: 4, 3: 5, 4: 3, 5: 2}
-            for x, y, z, p in pyr_coords:
-                new_pyr = pyr_map.get(p, -1)
-                new_coords.append((x, cy - (z - cz), cz + (y - cy), new_pyr))
+    for p_x, p_y, p_z, p_pyr in pyr_coords:
+        new_pyr, new_x, new_y, new_z = -1, -1, -1, -1
 
-    elif axisxyz == 1:  # Y-axis
-        if direction:
-            # x -> z
-            # y -> y
-            # z -> -x
-            pyr_map = {0: 4, 1: 5, 2: 2, 3: 3, 4: 1, 5: 0}
-            for x, y, z, p in pyr_coords:
-                new_pyr = pyr_map.get(p, -1)
-                new_coords.append((cx - (z - cz), y, cz + (x - cx), new_pyr))
-        else:
-            # x -> -z
-            # y -> y
-            # z -> x
-            pyr_map = {0: 5, 1: 4, 2: 2, 3: 3, 4: 0, 5: 1}
-            for x, y, z, p in pyr_coords:
-                new_pyr = pyr_map.get(p, -1)
-                new_coords.append((cx + (z - cz), y, cz - (x - cx), new_pyr))
-
-    elif axisxyz == 2:  # Z-axis
-        if direction:
-            # x -> -y
-            # y -> x
-            # z -> z
-            pyr_map = {0: 3, 1: 2, 2: 0, 3: 1, 4: 4, 5: 5}
-            for x, y, z, p in pyr_coords:
-                new_pyr = pyr_map.get(p, -1)
-                new_coords.append((cx + (y - cy), cy - (x - cx), z, new_pyr))
-        else:
-            # x -> y
-            # y -> -x
-            # z -> z
-            pyr_map = {0: 2, 1: 3, 2: 1, 3: 0, 4: 4, 5: 5}
-            for x, y, z, p in pyr_coords:
-                new_pyr = pyr_map.get(p, -1)
-                new_coords.append((cx - (y - cy), cy + (x - cx), z, new_pyr))
+        if axis == 0:
+            if direction:  # x -> x, y -> -z, z -> y
+                new_pyr = ROT_MAP_0_TRUE[p_pyr]
+                new_x = p_x
+                new_y = center_y + p_z - center_z
+                new_z = center_z - (p_y - center_y)
+            else:  # x -> x, y -> z, z -> -y
+                new_pyr = ROT_MAP_0_FALSE[p_pyr]
+                new_x = p_x
+                new_y = center_y - (p_z - center_z)
+                new_z = center_z + (p_y - center_y)
+        elif axis == 1:
+            if direction:  # x -> z, y -> y, z -> -x
+                new_pyr = ROT_MAP_1_TRUE[p_pyr]
+                new_x = center_x - (p_z - center_z)
+                new_y = p_y
+                new_z = center_z + (p_x - center_x)
+            else:  # x -> -z, y -> y, z -> x
+                new_pyr = ROT_MAP_1_FALSE[p_pyr]
+                new_x = center_x + (p_z - center_z)
+                new_y = p_y
+                new_z = center_z - (p_x - center_x)
+        elif axis == 2:
+            if direction:  # x -> -y, y -> x, z -> z
+                new_pyr = ROT_MAP_2_TRUE[p_pyr]
+                new_x = center_x + (p_y - center_y)
+                new_y = center_y - (p_x - center_x)
+                new_z = p_z
+            else:  # x -> y, y -> -x, z -> z
+                new_pyr = ROT_MAP_2_FALSE[p_pyr]
+                new_x = center_x - (p_y - center_y)
+                new_y = center_y + (p_x - center_x)
+                new_z = p_z
+        
+        new_coords.append((new_x, new_y, new_z, new_pyr))
 
     return new_coords
+
+def calculate_all_neighbor_pyramids(pyramid_cluster: Set[PyramidCoord]) -> Set[PyramidCoord]:
+    """
+    Calculates all neighbor pyramids for a given cluster of pyramids.
+
+    Args:
+        pyramid_cluster: A set of pyramid coordinates.
+
+    Returns:
+        A set of neighbor pyramid coordinates.
+    """
+    pyramid_surround: Set[PyramidCoord] = set()
+
+    base_neighbors_case0 = [
+        (0, 1, 0, 0), (0, 1, 0, 3), (0, 1, 0, 4), (0, 1, 0, 5),
+        (0, 1, 1, 0), (0, 1, 1, 3), (0, 1, 1, 5),
+        (0, 0, 1, 0), (0, 0, 1, 2), (0, 0, 1, 3), (0, 0, 1, 5),
+        (0, -1, 1, 0), (0, -1, 1, 2), (0, -1, 1, 5),
+        (0, -1, 0, 0), (0, -1, 0, 2), (0, -1, 0, 4), (0, -1, 0, 5),
+        (0, -1, -1, 0), (0, -1, -1, 2), (0, -1, -1, 4),
+        (0, 0, -1, 0), (0, 0, -1, 2), (0, 0, -1, 3), (0, 0, -1, 4),
+        (0, 1, -1, 0), (0, 1, -1, 3), (0, 1, -1, 4),
+        (0, 0, 0, 1), (0, 0, 0, 2), (0, 0, 0, 3), (0, 0, 0, 4), (0, 0, 0, 5),
+        (1, 1, 0, 1), (1, 1, 0, 3), (1, 1, 0, 4), (1, 1, 0, 5),
+        (1, 1, 1, 1), (1, 1, 1, 3), (1, 1, 1, 5),
+        (1, 0, 1, 1), (1, 0, 1, 2), (1, 0, 1, 3), (1, 0, 1, 5),
+        (1, -1, 1, 1), (1, -1, 1, 2), (1, -1, 1, 5),
+        (1, -1, 0, 1), (1, -1, 0, 2), (1, -1, 0, 4), (1, -1, 0, 5),
+        (1, -1, -1, 1), (1, -1, -1, 2), (1, -1, -1, 4),
+        (1, 0, -1, 1), (1, 0, -1, 2), (1, 0, -1, 3), (1, 0, -1, 4),
+        (1, 1, -1, 1), (1, 1, -1, 3), (1, 1, -1, 4),
+        (1, 0, 0, 1), (1, 0, 0, 2), (1, 0, 0, 3), (1, 0, 0, 4), (1, 0, 0, 5),
+    ]
+
+    for p_x, p_y, p_z, p_pyr in pyramid_cluster:
+        p_pos = (p_x, p_y, p_z)
+        
+        neighbor_pyramids_case0 = [(p_x + x, p_y + y, p_z + z, pyr) for x, y, z, pyr in base_neighbors_case0]
+
+        if p_pyr == 0:
+            for pc in neighbor_pyramids_case0:
+                if pc not in pyramid_surround and pc not in pyramid_cluster:
+                    pyramid_surround.add(pc)
+        elif p_pyr == 1:
+            neighbor_pyramids_case1 = rotatePyramids(rotatePyramids(neighbor_pyramids_case0, 1, True, p_pos), 1, True, p_pos)
+            for pc in neighbor_pyramids_case1:
+                if pc not in pyramid_surround and pc not in pyramid_cluster:
+                    pyramid_surround.add(pc)
+        elif p_pyr == 2:
+            neighbor_pyramids_case2 = rotatePyramids(neighbor_pyramids_case0, 2, False, p_pos)
+            for pc in neighbor_pyramids_case2:
+                if pc not in pyramid_surround and pc not in pyramid_cluster:
+                    pyramid_surround.add(pc)
+        elif p_pyr == 3:
+            neighbor_pyramids_case3 = rotatePyramids(neighbor_pyramids_case0, 2, True, p_pos)
+            for pc in neighbor_pyramids_case3:
+                if pc not in pyramid_surround and pc not in pyramid_cluster:
+                    pyramid_surround.add(pc)
+        elif p_pyr == 4:
+            neighbor_pyramids_case4 = rotatePyramids(neighbor_pyramids_case0, 1, True, p_pos)
+            for pc in neighbor_pyramids_case4:
+                if pc not in pyramid_surround and pc not in pyramid_cluster:
+                    pyramid_surround.add(pc)
+        elif p_pyr == 5:
+            neighbor_pyramids_case5 = rotatePyramids(neighbor_pyramids_case0, 1, False, p_pos)
+            for pc in neighbor_pyramids_case5:
+                if pc not in pyramid_surround and pc not in pyramid_cluster:
+                    pyramid_surround.add(pc)
+
+    for p_x, p_y, p_z, p_pyr in pyramid_cluster:
+        for i in range(1, 6):
+            neighbor_pyramid = (p_x, p_y, p_z, (p_pyr + i) % 6)
+            if neighbor_pyramid not in pyramid_cluster:
+                pyramid_surround.add(neighbor_pyramid)
+
+    return pyramid_surround
 
 def create_rotated_pyramid_coords(r, temp_pyramid_coords, center):
     
@@ -198,19 +278,32 @@ def solve_surround():
     clusterPyramids = generateTilePyramids(0, 0, 0, 0)
     clusterPyramidsSet = set(clusterPyramids)
 
-    # Define the "corona" - the cells that need to be covered around the central tile
-    def get_opposite_cell(cell):
-        x, y, z, p = cell
-        # Pyramid indices assumed as: 0:+X, 1:-X, 2:+Y, 3:-Y, 4:+Z, 5:-Z
-        if p == 0: return (x + 1, y, z, 1)
-        if p == 1: return (x - 1, y, z, 0)
-        if p == 2: return (x, y + 1, z, 3)
-        if p == 3: return (x, y - 1, z, 2)
-        if p == 4: return (x, y, z + 1, 5)
-        if p == 5: return (x, y, z - 1, 4)
-        return None # Should not happen
 
-    corona_cells = {get_opposite_cell(c) for c in clusterPyramids}
+    #...# source .venv/bin/activate
+        # python3 heeschZ3.py
+
+
+
+    # Define the "corona" - the cells that need to be covered around the central tile
+    def get_corona_cells(pyramids):
+        # Pyramid indices assumed as: 0:+X, 1:-X, 2:+Y, 3:-Y, 4:+Z, 5:-Z
+        # TODO -> pyramidSurround ...
+
+        coronaCells = calculate_all_neighbor_pyramids(pyramids)
+
+#def calculate_all_neighbor_pyramids(pyramid_cluster: Set[PyramidCoord]) -> Set[PyramidCoord]:
+
+
+        return coronaCells
+
+    corona_cells = get_corona_cells(clusterPyramids)
+
+
+
+
+
+
+
 
     # --- 1. Define Variables ---
     # boolean variable for every possible tile position
@@ -219,9 +312,9 @@ def solve_surround():
     cellCoverage = defaultdict(list)
 
     # Search space for surrounding tiles
-    for x in range(-4, 5):
-        for y in range(-3, 4):
-            for z in range(-3, 4):
+    for x in range(-6, 7):
+        for y in range(-6, 7):
+            for z in range(-6, 7):
                 for rot in range(24):
                     tile_pyramids = generateTilePyramids(x, y, z, rot)
                     # Check for overlap with the central tile
@@ -234,15 +327,33 @@ def solve_surround():
                         for cell in tile_pyramids:
                             cellCoverage[cell].append(var)
 
+    print(f"Nr possible placements: {len(placements)}")
+
+    # Check if any corona cells are uncovered
+    uncovered_corona = [c for c in corona_cells if not cellCoverage[c]]
+    covered_corona = [c for c in corona_cells if cellCoverage[c]]
+    if uncovered_corona:
+        print(f"INFEASIBLE: {len(uncovered_corona)} corona cells are not covered by any valid tile placement.")
+        print("Uncovered cells:")
+        print(*uncovered_corona, sep="\n")
+        
+    if covered_corona:
+        print(f"FEASIBLE: {len(covered_corona)} corona cells are covered by at least one valid tile placement.")
+        print(f"Covered cells: {covered_corona}")
+    else:
+        print("No cells in covered_corona.")
+    #return
+
     # --- 2. Define Constraints ---
-    # Each cell in the grid can be covered by at most one tile (no overlaps between surrounding tiles)
+    # Constraint 1: Tiles cannot overlap.
+    # This means any given cell in space can be covered by at most one tile.
     for cell, potentialVars in cellCoverage.items():
         model.Add(sum(potentialVars) <= 1)
 
-    # The corona of the central tile must be completely covered.
+    # Constraint 2: The corona must be fully covered.
+    # This means every cell in the corona must be covered by at least one tile.
     for cell in corona_cells:
-        # This enforces that one of the placements covering this corona cell must be chosen.
-        model.Add(sum(cellCoverage.get(cell, [])) == 1)
+        model.Add(sum(cellCoverage.get(cell, [])) >= 1)
 
     # --- 3. Solve ---
     solver = cp_model.CpSolver()
@@ -254,11 +365,21 @@ def solve_surround():
         print("Solution found!")
         # You can add code here to visualize or process the solution
         # For example, print the coordinates of placed tiles:
+        nrTilesPlaced = 0
         for pos, var in placements.items():
             if solver.Value(var):
-                print(f"Placed tile at {pos}")
+                nrTilesPlaced += 1
+                print(f"{pos}")
+        print(f"Total tiles placed: {nrTilesPlaced}")
     else:
         print(f"No solution found. Status: {solver.StatusName(status)}")
+        nrTilesPlaced = 0
+        for pos, var in placements.items():
+            if solver.Value(var):
+                nrTilesPlaced += 1
+                #print(f"Placed tile at {pos}")
+        print(f"Total tiles placed: {nrTilesPlaced}")
+        
 
 if __name__ == '__main__':
     solve_surround()
