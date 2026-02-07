@@ -409,35 +409,59 @@ def solve_surround():
 
     # --- 3. Solve ---
     solver = cp_model.CpSolver()
-    #solver.parameters.log_search_progress = True
-    status = solver.Solve(model)
+    # Set number of threads for parallel search
+    solver.parameters.num_search_workers = 8
 
     # --- 4. Output Results ---
+    solution_count = 0
+    with open("all_solutions.txt", "w") as f:
+        while True:
+            status = solver.Solve(model)
+
+            if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
+                solution_count += 1
+                print(f"Solution {solution_count} found!")
+                
+                current_solution_vars = []
+                f.write(f"--- Solution {solution_count} ---\n")
+                
+                for pos, var in placements.items():
+                    if solver.Value(var):
+                        current_solution_vars.append(var)
+                        print(f"{pos}")
+                        f.write(f"{pos}\n")
+                
+                print(f"Total tiles placed: {len(current_solution_vars)}")
+                
+                # --- Blocking Clause ---
+                # Option 1: Block this solution AND any superset (Recommended for tiling)
+                # current_solution_vars holds the variable OBJECTS (not values) that are True in this solution.
+                # sum(current_solution_vars) creates a symbolic expression for the *next* solve.
+                # len(current_solution_vars) is the integer count of tiles in *this* solution.
+                # The constraint: (var1 + var2 + ...) <= N - 1
+                # This forces at least one of the currently placed tiles to be removed in the next solution.
+                model.Add(sum(current_solution_vars) <= len(current_solution_vars) - 1)
+
+                # Option 2: Block ONLY this exact solution (Allows supersets)
+                # Use this if you specifically want to see solutions that are supersets of this one.
+                # vars_not_in_solution = [var for var in placements.values() if not solver.Value(var)]
+                # model.Add(sum(current_solution_vars) - sum(vars_not_in_solution) <= len(current_solution_vars) - 1)
+                
+            else:
+                print(f"No more solutions found. Status: {solver.StatusName(status)}")
+                print(f"Total solutions found: {solution_count}")
+                break
+
+    """
+    # Original single solution code for reference
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print("Solution found!")
-        # You can add code here to visualize or process the solution
-        # For example, print the coordinates of placed tiles:
-        nrTilesPlaced = 0
-        i = 0
+        # ...
         with open("solution.txt", "w") as f:
             for pos, var in placements.items():
                 if solver.Value(var):
-                    nrTilesPlaced += 1
-                    print(f"{pos}")
-                    f.write(f"{pos}\n")
-
-
-        print(f"Total tiles placed: {nrTilesPlaced}")
-    else:
-        print(f"No solution found. Status: {solver.StatusName(status)}")
-        nrTilesPlaced = 0
-        with open("solutionAttempt.txt", "w") as f:
-            for pos, var in placements.items():
-                if solver.Value(var):
-                    nrTilesPlaced += 1
-                    f.write(f"{pos}\n")
-                    #print(f"Placed tile at {pos}")
-        print(f"Total tiles placed: {nrTilesPlaced}")
+                    # ...
+    """
 
     # print corona cells
     nrCoronaCells = 0
