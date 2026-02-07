@@ -24,6 +24,7 @@ def generateTilePyramids(x, y, z, rot):
     Generates pyramid coordinates for a tile at (x,y,z) with rotation 'rot'.
     """
     # These are the local coordinates of the pyramids for a tile at origin in default orientation
+    # tile description
     base_pyramids = [
         (0, 0, -1, 4),
         (0, 0, 0, 1),
@@ -45,6 +46,14 @@ def generateTilePyramids(x, y, z, rot):
         (-1, 0, 2, 0),
         (0, -1, 2, 2),
     ]
+    #base_pyramids = [
+    #    (0, 0, 0, 0),
+    #    #(0, 0, 0, 1),
+    #    #(0, 0, 0, 2),
+    #    (0, 0, 0, 3),
+    #    (0, 0, 0, 4),
+    #    #(0, 0, 0, 5),
+    #]
 
     # NOTE: The center of rotation for the base tile is assumed to be (0,0,0).
     # This might need to be adjusted depending on the tile's geometry.
@@ -193,6 +202,12 @@ def calculate_all_neighbor_pyramids(pyramid_cluster: Set[PyramidCoord]) -> Set[P
             if neighbor_pyramid not in pyramid_cluster:
                 pyramid_surround.add(neighbor_pyramid)
 
+    print("Neighbor pyramids:")
+    with open("surround.txt", "w") as f:
+        for pos in pyramid_surround:
+            print(f"{pos}")
+            f.write(f"{pos}\n")
+
     return pyramid_surround
 
 def create_rotated_pyramid_coords(r, temp_pyramid_coords, center):
@@ -278,32 +293,15 @@ def solve_surround():
     clusterPyramids = generateTilePyramids(0, 0, 0, 0)
     clusterPyramidsSet = set(clusterPyramids)
 
-
+    print(f"clusterPyramids count: {len(clusterPyramidsSet)}") # 19 OK
     #...# source .venv/bin/activate
         # python3 heeschZ3.py
 
 
 
     # Define the "corona" - the cells that need to be covered around the central tile
-    def get_corona_cells(pyramids):
-        # Pyramid indices assumed as: 0:+X, 1:-X, 2:+Y, 3:-Y, 4:+Z, 5:-Z
-        # TODO -> pyramidSurround ...
-
-        coronaCells = calculate_all_neighbor_pyramids(pyramids)
-
-#def calculate_all_neighbor_pyramids(pyramid_cluster: Set[PyramidCoord]) -> Set[PyramidCoord]:
-
-
-        return coronaCells
-
-    corona_cells = get_corona_cells(clusterPyramids)
-
-
-
-
-
-
-
+    corona_cells = calculate_all_neighbor_pyramids(clusterPyramids)
+    print(f"coronaCells count: {len(corona_cells)}") # 180 OK
 
     # --- 1. Define Variables ---
     # boolean variable for every possible tile position
@@ -312,22 +310,61 @@ def solve_surround():
     cellCoverage = defaultdict(list)
 
     # Search space for surrounding tiles
-    for x in range(-6, 7):
-        for y in range(-6, 7):
-            for z in range(-6, 7):
-                for rot in range(24):
-                    tile_pyramids = generateTilePyramids(x, y, z, rot)
-                    # Check for overlap with the central tile
-                    if not any(p in clusterPyramidsSet for p in tile_pyramids):
-                        # Create variable for this valid placement
-                        var = model.NewBoolVar(f'x{x}_y{y}_z{z}_r{rot}')
-                        placements[(x, y, z, rot)] = var
+    neighborCubes = []
+    for p in clusterPyramids:
+        for i in range(-3, 4):
+            for j in range(-3, 4):
+                for k in range(-3, 4):
+                    newCubePos = (p[0] + i, p[1] + j, p[2] + k)
+                    if newCubePos not in neighborCubes:
+                        neighborCubes.append(newCubePos)
 
-                        # Map variable to the cells it covers
-                        for cell in tile_pyramids:
-                            cellCoverage[cell].append(var)
+    print(f"neighborCubes count: {len(neighborCubes)}") # 270 OK
 
-    print(f"Nr possible placements: {len(placements)}")
+    nrPlacements = 0
+    nrPlacementsWithOverlap = 0
+    for neighborCubePos in neighborCubes:
+        testTilePyramidCoords = []
+        for rot in range(24):
+            testTilePyramidCoords = generateTilePyramids(neighborCubePos[0], neighborCubePos[1], neighborCubePos[2], rot)
+
+            if not any(p in clusterPyramidsSet for p in testTilePyramidCoords):
+                placement_key = (neighborCubePos[0], neighborCubePos[1], neighborCubePos[2], rot)
+                if placement_key not in placements:
+                    # Create variable for this valid placement
+                    var = model.NewBoolVar(f'x{neighborCubePos[0]}_y{neighborCubePos[1]}_z{neighborCubePos[2]}_r{rot}')
+                    placements[placement_key] = var
+                    nrPlacements += 1
+
+                    # Map variable to the cells it covers
+                    for cell in testTilePyramidCoords:
+                        cellCoverage[cell].append(var)
+                else:
+                    nrPlacementsWithOverlap += 1
+
+    print(f"Nr pyramids in cluster: {len(clusterPyramidsSet)}")
+    for p in clusterPyramidsSet:
+        print(p)
+    print(f"Nr placements counter: {nrPlacements}")
+    print(f"Nr placements with overlap: {nrPlacementsWithOverlap}")
+    print(f"Nr possible placements: {len(placements)}") # soll: 1304 ist: 6076
+    
+
+    # for x in range(-2, 3):
+    #     for y in range(-2, 3):
+    #         for z in range(-2, 3):
+    #             for rot in range(24):
+    #                 tile_pyramids = generateTilePyramids(x, y, z, rot)
+    #                 # Check for overlap with the central tile
+    #                 if not any(p in clusterPyramidsSet for p in tile_pyramids):
+    #                     # Create variable for this valid placement
+    #                     var = model.NewBoolVar(f'x{x}_y{y}_z{z}_r{rot}')
+    #                     placements[(x, y, z, rot)] = var
+    # 
+    #                     # Map variable to the cells it covers
+    #                     for cell in tile_pyramids:
+    #                         cellCoverage[cell].append(var)
+
 
     # Check if any corona cells are uncovered
     uncovered_corona = [c for c in corona_cells if not cellCoverage[c]]
@@ -357,7 +394,7 @@ def solve_surround():
 
     # --- 3. Solve ---
     solver = cp_model.CpSolver()
-    solver.parameters.log_search_progress = True
+    #solver.parameters.log_search_progress = True
     status = solver.Solve(model)
 
     # --- 4. Output Results ---
@@ -366,19 +403,39 @@ def solve_surround():
         # You can add code here to visualize or process the solution
         # For example, print the coordinates of placed tiles:
         nrTilesPlaced = 0
-        for pos, var in placements.items():
-            if solver.Value(var):
-                nrTilesPlaced += 1
-                print(f"{pos}")
+        i = 0
+        with open("solution.txt", "w") as f:
+            for pos, var in placements.items():
+                if solver.Value(var):
+                    nrTilesPlaced += 1
+                    print(f"{pos}")
+                    f.write(f"{pos}\n")
+
+
         print(f"Total tiles placed: {nrTilesPlaced}")
     else:
         print(f"No solution found. Status: {solver.StatusName(status)}")
         nrTilesPlaced = 0
-        for pos, var in placements.items():
-            if solver.Value(var):
-                nrTilesPlaced += 1
-                #print(f"Placed tile at {pos}")
+        with open("solutionAttempt.txt", "w") as f:
+            for pos, var in placements.items():
+                if solver.Value(var):
+                    nrTilesPlaced += 1
+                    f.write(f"{pos}\n")
+                    #print(f"Placed tile at {pos}")
         print(f"Total tiles placed: {nrTilesPlaced}")
+
+    # print corona cells
+    nrCoronaCells = 0
+    with open("corona_cells.txt", "w") as f:
+        for pos in corona_cells:
+            nrCoronaCells += 1
+            f.write(f"{pos}\n")
+            #print(f"{pos}")
+    print(f"Total corona cells: {nrCoronaCells}")
+
+
+        # TODO: calculate overlap of each tile with the root tile and pairwise overlap!
+        #...
         
 
 if __name__ == '__main__':
