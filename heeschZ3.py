@@ -27,25 +27,37 @@ def generateTilePyramids(x, y, z, rot):
     # tile description
     base_pyramids = [
         (0, 0, -1, 4),
-        (0, 0, 0, 1),
-        (0, 0, 0, 3),
-        (0, 0, 0, 4),
-        (0, 0, 0, 5),
-        (-1, 0, 0, 0),
-        (0, -1, 0, 2),
-        (0, 0, 1, 1),
-        (0, 0, 1, 3),
-        (0, 0, 1, 4),
-        (0, 0, 1, 5),
-        (-1, 0, 1, 0),
-        (0, -1, 1, 2),
-        (0, 0, 2, 1),
-        (0, 0, 2, 3),
-        (0, 0, 2, 4),
-        (0, 0, 2, 5),
-        (-1, 0, 2, 0),
-        (0, -1, 2, 2),
+
+        ( 0,  0, 0, 1),
+        ( 0,  0, 0, 3),
+        ( 0,  0, 0, 4),
+        ( 0,  0, 0, 5),
+        (-1,  0, 0, 0),
+        ( 0, -1, 0, 2),
+
+        ( 0,  0, 1, 1),
+        ( 0,  0, 1, 3),
+        ( 0,  0, 1, 4),
+        ( 0,  0, 1, 5),
+        (-1,  0, 1, 0),
+        ( 0, -1, 1, 2),
+        
+        ( 0,  0, 2, 1),
+        ( 0,  0, 2, 3),
+        ( 0,  0, 2, 4),
+        ( 0,  0, 2, 5),
+        (-1,  0, 2, 0),
+        ( 0, -1, 2, 2),
     ]
+    
+    # (0, 0, 0, 0),
+    # (0, 0, 0, 1),
+    # (0, 0, 0, 2),
+    # (0, 0, 0, 4),
+    # (0, 0, 0, 5),
+    # (0, 1, 0, 3),
+
+
     #base_pyramids = [
     #    (0, 0, 0, 0),
     #    #(0, 0, 0, 1),
@@ -54,6 +66,15 @@ def generateTilePyramids(x, y, z, rot):
     #    (0, 0, 0, 4),
     #    #(0, 0, 0, 5),
     #]
+    #base_pyramids = [
+    #    (0, 0, 0, 0),
+    #    (0, 0, 0, 3),
+    #    (0, 0, 0, 1),
+    #    (1, 0, 0, 0),
+    #    (1, 0, 0, 3),
+    #    (1, 0, 0, 1),
+    #]
+
 
     # NOTE: The center of rotation for the base tile is assumed to be (0,0,0).
     # This might need to be adjusted depending on the tile's geometry.
@@ -202,12 +223,6 @@ def calculate_all_neighbor_pyramids(pyramid_cluster: Set[PyramidCoord]) -> Set[P
             if neighbor_pyramid not in pyramid_cluster:
                 pyramid_surround.add(neighbor_pyramid)
 
-    print("Neighbor pyramids:")
-    with open("surround.txt", "w") as f:
-        for pos in pyramid_surround:
-            print(f"{pos}")
-            f.write(f"{pos}\n")
-
     return pyramid_surround
 
 def create_rotated_pyramid_coords(r, temp_pyramid_coords, center):
@@ -312,9 +327,9 @@ def solve_surround():
     # Search space for surrounding tiles
     neighborCubes = []
     for p in clusterPyramids:
-        for i in range(-3, 4):
-            for j in range(-3, 4):
-                for k in range(-3, 4):
+        for i in range(-4, 5):
+            for j in range(-4, 5):
+                for k in range(-4, 5):
                     newCubePos = (p[0] + i, p[1] + j, p[2] + k)
                     if newCubePos not in neighborCubes:
                         neighborCubes.append(newCubePos)
@@ -426,12 +441,14 @@ def solve_surround():
 
     # print corona cells
     nrCoronaCells = 0
-    with open("corona_cells.txt", "w") as f:
+    filePath = "corona_cells.txt"
+    with open(filePath, "w") as f:
         for pos in corona_cells:
             nrCoronaCells += 1
             f.write(f"{pos}\n")
             #print(f"{pos}")
     print(f"Total corona cells: {nrCoronaCells}")
+    print(f"Corona cells written to {filePath}")
 
 
         # TODO: calculate overlap of each tile with the root tile and pairwise overlap!
