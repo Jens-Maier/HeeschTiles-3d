@@ -2,6 +2,8 @@
 # source .venv/bin/activate
 # python3 heeschZ3.py
 
+# -> 3 coronas: timed out on google colab!
+
 
 from ortools.sat.python import cp_model
 from collections import defaultdict
@@ -335,6 +337,9 @@ def solve_monolithic():
     cell_covered_by_s2 = defaultdict(list)
     cell_covered_by_s3 = defaultdict(list)
     
+    # Precompute neighbors of the center tile to filter S1 candidates
+    center_neighbors_set = calculate_all_neighbor_pyramids(center_cells)
+
     # Iterate over potential tile origins
     tile_origin_radius = 8
     for x in range(-tile_origin_radius, tile_origin_radius + 1):
@@ -352,27 +357,35 @@ def solve_monolithic():
                     if any(c in center_cells for c in cells):
                         continue
                         
-                    # Create variables for S1 and S2
-                    s1_var = model.NewBoolVar(f's1_{pos}')
-                    s2_var = model.NewBoolVar(f's2_{pos}')
-                    s3_var = model.NewBoolVar(f's3_{pos}')
-                    
-                    s1_placements[pos] = s1_var
-                    s2_placements[pos] = s2_var
-                    s3_placements[pos] = s3_var
-                    
-                    # Link to cells
-                    for c in cells:
-                        cell_covered_by_s1[c].append(s1_var)
-                        cell_covered_by_s2[c].append(s2_var)
-                        cell_covered_by_s3[c].append(s3_var)
+                    # Optimization: S1 tiles must touch the center tile
+                    is_s1_candidate = any(c in center_neighbors_set for c in cells)
+                    is_s2_or_s3_candidate = not is_s1_candidate
+
+                    # Create variables for S1
+                    if is_s1_candidate:
+                        s1_var = model.NewBoolVar(f's1_{pos}')
+                        s1_placements[pos] = s1_var
+                        for c in cells:
+                            cell_covered_by_s1[c].append(s1_var)
+
+                    # Create variables for S2 and S3
+                    if is_s2_or_s3_candidate:
+                        s2_var = model.NewBoolVar(f's2_{pos}')
+                        s3_var = model.NewBoolVar(f's3_{pos}')
                         
-                    # Constraint: A tile cannot be in both S1 and S2
-                    model.Add(s1_var + s2_var <= 1)
-                    model.Add(s1_var + s3_var <= 1)
-                    model.Add(s2_var + s3_var <= 1)
+                        s2_placements[pos] = s2_var
+                        s3_placements[pos] = s3_var
+                        
+                        for c in cells:
+                            cell_covered_by_s2[c].append(s2_var)
+                            cell_covered_by_s3[c].append(s3_var)
+                            
+                        model.Add(s2_var + s3_var <= 1)
                     
-    print(f"Generated {len(s1_placements)} potential tile positions.")
+    print(f"Generated {len(s1_placements)} potential tile positions for s1.")
+    print(f"Generated {len(s2_placements)} potential tile positions for s2.")
+    print(f"Generated {len(s3_placements)} potential tile positions for s3.")
+    
 
     # 5. Constraints
     
@@ -391,7 +404,7 @@ def solve_monolithic():
             model.Add(sum(s1_cov) + sum(s3_cov) <= 1)
         if s2_cov or s3_cov:
             model.Add(sum(s2_cov) + sum(s3_cov) <= 1)
-
+    print("Generated disjointness constraints.")
 
     # B. S1 Surrounds Center
     # All neighbors of Center must be covered by S1
@@ -403,6 +416,7 @@ def solve_monolithic():
             else:
                 print(f"Warning: Center neighbor {c} cannot be covered by any tile.")
                 return
+    print("Generated surrounds center constraints.")
 
     # C. S2 Surrounds S1
     # Logic: If any neighbor of cell c is covered by S1, then c must be covered by (S1 or S2).
@@ -424,6 +438,7 @@ def solve_monolithic():
         # If c is empty, then NO neighbor can be S1.
         current_cell_covered = sum(cell_covered_by_s1[c]) + sum(cell_covered_by_s2[c])
         model.Add(sum(neighbor_s1_vars) <= len(neighbor_s1_vars) * current_cell_covered)
+    print("Generated S2 surrounds S1 constraints.")
 
     # D. S3 Surrounds S2
     for c in search_cells:
@@ -442,7 +457,9 @@ def solve_monolithic():
         # Constraint: sum(neighbor_s2) <= BigM * (covered_by_s1(c) + covered_by_s2(c) + covered_by_s3(c))
         current_cell_covered = sum(cell_covered_by_s1[c]) + sum(cell_covered_by_s2[c]) + sum(cell_covered_by_s3[c])
         model.Add(sum(neighbor_s2_vars) <= len(neighbor_s2_vars) * current_cell_covered)
-    
+    print("Generated S3 surrounds S2 constraints.")
+
+    print("generated model. Starting solver...")
 
     # 6. Solve
     solver = cp_model.CpSolver()
@@ -451,6 +468,17 @@ def solve_monolithic():
     
     print("Solving monolithic model for 3 coronas...")
     status = solver.Solve(model)
+
+    # Generated 1464 potential tile positions for s1.
+    # Generated 116044 potential tile positions for s2.
+    # Generated 116044 potential tile positions for s3.
+    # Generated disjointness constraints.
+    # Generated surrounds center constraints.
+    # Generated S2 surrounds S1 constraints.
+    # Generated S3 surrounds S2 constraints.
+    # generated model. Starting solver...
+    # Solving monolithic model for 3 coronas...
+    # No solution found.
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print("Solution found!")
