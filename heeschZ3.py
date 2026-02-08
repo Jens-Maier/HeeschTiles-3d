@@ -27,14 +27,14 @@ def generateTilePyramids(x, y, z, rot):
     # tile description
     base_pyramids = [
         (0, 0, -1, 4),
-
+    
         ( 0,  0, 0, 1),
         ( 0,  0, 0, 3),
         ( 0,  0, 0, 4),
         ( 0,  0, 0, 5),
         (-1,  0, 0, 0),
         ( 0, -1, 0, 2),
-
+    
         ( 0,  0, 1, 1),
         ( 0,  0, 1, 3),
         ( 0,  0, 1, 4),
@@ -48,14 +48,14 @@ def generateTilePyramids(x, y, z, rot):
         ( 0,  0, 2, 5),
         (-1,  0, 2, 0),
         ( 0, -1, 2, 2),
+
+    #    (0, 0, 0, 0),
+    #    (0, 0, 0, 1),
+    #    (0, 0, 0, 2),
+    #    (0, 0, 0, 4),
+    #    (0, 0, 0, 5),
+    #    (0, 1, 0, 3),
     ]
-    
-    # (0, 0, 0, 0),
-    # (0, 0, 0, 1),
-    # (0, 0, 0, 2),
-    # (0, 0, 0, 4),
-    # (0, 0, 0, 5),
-    # (0, 1, 0, 3),
 
 
     #base_pyramids = [
@@ -301,183 +301,181 @@ def create_rotated_pyramid_coords(r, temp_pyramid_coords, center):
         
     return return_pyramid_coords
 
-def solve_surround():
+def solve_monolithic():
     model = cp_model.CpModel()
+    
+    # 1. Setup Grid and Center
+    center_tile_pos = (0, 0, 0, 0)
+    center_cells = set(generateTilePyramids(*center_tile_pos))
+    
+    # 2. Define Search Space (Bounding Box)
+    # A radius of 5 should be sufficient for 2 coronas
+    search_radius = 15
+    search_cells = set()
+    for x in range(-search_radius, search_radius + 1):
+        for y in range(-search_radius, search_radius + 1):
+            for z in range(-search_radius, search_radius + 1):
+                for pyr in range(6):
+                    search_cells.add((x, y, z, pyr))
+                    
+    # 3. Precompute Neighbors for all search cells
+    # This is needed for the "S2 surrounds S1" constraint
+    cell_neighbors = {}
+    for cell in search_cells:
+        ns = calculate_all_neighbor_pyramids({cell})
+        valid_ns = [n for n in ns if n in search_cells]
+        cell_neighbors[cell] = valid_ns
 
-    # Define the central tile
-    clusterPyramids = generateTilePyramids(0, 0, 0, 0)
-    clusterPyramidsSet = set(clusterPyramids)
+    # 4. Generate Tile Variables
+    s1_placements = {}
+    s2_placements = {}
+    s3_placements = {}
+    
+    cell_covered_by_s1 = defaultdict(list)
+    cell_covered_by_s2 = defaultdict(list)
+    cell_covered_by_s3 = defaultdict(list)
+    
+    # Iterate over potential tile origins
+    tile_origin_radius = 8
+    for x in range(-tile_origin_radius, tile_origin_radius + 1):
+        for y in range(-tile_origin_radius, tile_origin_radius + 1):
+            for z in range(-tile_origin_radius, tile_origin_radius + 1):
+                for rot in range(24):
+                    pos = (x, y, z, rot)
+                    cells = generateTilePyramids(*pos)
+                    
+                    # Optimization: Tile must be within search space
+                    if not all(c in search_cells for c in cells):
+                        continue
+                        
+                    # Optimization: Tile must not overlap center
+                    if any(c in center_cells for c in cells):
+                        continue
+                        
+                    # Create variables for S1 and S2
+                    s1_var = model.NewBoolVar(f's1_{pos}')
+                    s2_var = model.NewBoolVar(f's2_{pos}')
+                    s3_var = model.NewBoolVar(f's3_{pos}')
+                    
+                    s1_placements[pos] = s1_var
+                    s2_placements[pos] = s2_var
+                    s3_placements[pos] = s3_var
+                    
+                    # Link to cells
+                    for c in cells:
+                        cell_covered_by_s1[c].append(s1_var)
+                        cell_covered_by_s2[c].append(s2_var)
+                        cell_covered_by_s3[c].append(s3_var)
+                        
+                    # Constraint: A tile cannot be in both S1 and S2
+                    model.Add(s1_var + s2_var <= 1)
+                    model.Add(s1_var + s3_var <= 1)
+                    model.Add(s2_var + s3_var <= 1)
+                    
+    print(f"Generated {len(s1_placements)} potential tile positions.")
 
-    print(f"clusterPyramids count: {len(clusterPyramidsSet)}") # 19 OK
-    #...# source .venv/bin/activate
-        # python3 heeschZ3.py
+    # 5. Constraints
+    
+    # A. Disjointness
+    # For every cell, sum(s1) + sum(s2) <= 1
+    for c in search_cells:
+        if c in center_cells: continue
+        
+        s1_cov = cell_covered_by_s1[c]
+        s2_cov = cell_covered_by_s2[c]
+        s3_cov = cell_covered_by_s3[c]
+        
+        if s1_cov or s2_cov:
+            model.Add(sum(s1_cov) + sum(s2_cov) <= 1)
+        if s1_cov or s3_cov:
+            model.Add(sum(s1_cov) + sum(s3_cov) <= 1)
+        if s2_cov or s3_cov:
+            model.Add(sum(s2_cov) + sum(s3_cov) <= 1)
 
 
+    # B. S1 Surrounds Center
+    # All neighbors of Center must be covered by S1
+    center_neighbors = calculate_all_neighbor_pyramids(center_cells)
+    for c in center_neighbors:
+        if c in search_cells:
+            if cell_covered_by_s1[c]:
+                model.Add(sum(cell_covered_by_s1[c]) == 1)
+            else:
+                print(f"Warning: Center neighbor {c} cannot be covered by any tile.")
+                return
 
-    # Define the "corona" - the cells that need to be covered around the central tile
-    corona_cells = calculate_all_neighbor_pyramids(clusterPyramids)
-    print(f"coronaCells count: {len(corona_cells)}") # 180 OK
+    # C. S2 Surrounds S1
+    # Logic: If any neighbor of cell c is covered by S1, then c must be covered by (S1 or S2).
+    # This forces S2 to fill all gaps around S1.
+    for c in search_cells:
+        if c in center_cells: continue
+            
+        neighbors = cell_neighbors.get(c, [])
+        if not neighbors: continue
+            
+        # Collect all S1 variables from all neighbors
+        neighbor_s1_vars = []
+        for n in neighbors:
+            neighbor_s1_vars.extend(cell_covered_by_s1[n])
+            
+        if not neighbor_s1_vars: continue
+            
+        # Constraint: sum(neighbor_s1) <= BigM * (covered_by_s1(c) + covered_by_s2(c))
+        # If c is empty, then NO neighbor can be S1.
+        current_cell_covered = sum(cell_covered_by_s1[c]) + sum(cell_covered_by_s2[c])
+        model.Add(sum(neighbor_s1_vars) <= len(neighbor_s1_vars) * current_cell_covered)
 
-    # --- 1. Define Variables ---
-    # boolean variable for every possible tile position
-
-    placements = {} # -> all possible tile positions of surround
-    cellCoverage = defaultdict(list)
-
-    # Search space for surrounding tiles
-    neighborCubes = []
-    for p in clusterPyramids:
-        for i in range(-4, 5):
-            for j in range(-4, 5):
-                for k in range(-4, 5):
-                    newCubePos = (p[0] + i, p[1] + j, p[2] + k)
-                    if newCubePos not in neighborCubes:
-                        neighborCubes.append(newCubePos)
-
-    print(f"neighborCubes count: {len(neighborCubes)}") # 270 OK
-
-    nrPlacements = 0
-    nrPlacementsWithOverlap = 0
-    for neighborCubePos in neighborCubes:
-        testTilePyramidCoords = []
-        for rot in range(24):
-            testTilePyramidCoords = generateTilePyramids(neighborCubePos[0], neighborCubePos[1], neighborCubePos[2], rot)
-
-            if not any(p in clusterPyramidsSet for p in testTilePyramidCoords):
-                placement_key = (neighborCubePos[0], neighborCubePos[1], neighborCubePos[2], rot)
-                if placement_key not in placements:
-                    # Create variable for this valid placement
-                    var = model.NewBoolVar(f'x{neighborCubePos[0]}_y{neighborCubePos[1]}_z{neighborCubePos[2]}_r{rot}')
-                    placements[placement_key] = var
-                    nrPlacements += 1
-
-                    # Map variable to the cells it covers
-                    for cell in testTilePyramidCoords:
-                        cellCoverage[cell].append(var)
-                else:
-                    nrPlacementsWithOverlap += 1
-
-    print(f"Nr pyramids in cluster: {len(clusterPyramidsSet)}")
-    for p in clusterPyramidsSet:
-        print(p)
-    print(f"Nr placements counter: {nrPlacements}")
-    print(f"Nr placements with overlap: {nrPlacementsWithOverlap}")
-    print(f"Nr possible placements: {len(placements)}") # soll: 1304 ist: 6076
+    # D. S3 Surrounds S2
+    for c in search_cells:
+        if c in center_cells: continue
+            
+        neighbors = cell_neighbors.get(c, [])
+        if not neighbors: continue
+            
+        # Collect all S2 variables from all neighbors
+        neighbor_s2_vars = []
+        for n in neighbors:
+            neighbor_s2_vars.extend(cell_covered_by_s2[n])
+            
+        if not neighbor_s2_vars: continue
+            
+        # Constraint: sum(neighbor_s2) <= BigM * (covered_by_s1(c) + covered_by_s2(c) + covered_by_s3(c))
+        current_cell_covered = sum(cell_covered_by_s1[c]) + sum(cell_covered_by_s2[c]) + sum(cell_covered_by_s3[c])
+        model.Add(sum(neighbor_s2_vars) <= len(neighbor_s2_vars) * current_cell_covered)
     
 
-    # for x in range(-2, 3):
-    #     for y in range(-2, 3):
-    #         for z in range(-2, 3):
-    #             for rot in range(24):
-    #                 tile_pyramids = generateTilePyramids(x, y, z, rot)
-    #                 # Check for overlap with the central tile
-    #                 if not any(p in clusterPyramidsSet for p in tile_pyramids):
-    #                     # Create variable for this valid placement
-    #                     var = model.NewBoolVar(f'x{x}_y{y}_z{z}_r{rot}')
-    #                     placements[(x, y, z, rot)] = var
-    # 
-    #                     # Map variable to the cells it covers
-    #                     for cell in tile_pyramids:
-    #                         cellCoverage[cell].append(var)
-
-
-    # Check if any corona cells are uncovered
-    uncovered_corona = [c for c in corona_cells if not cellCoverage[c]]
-    covered_corona = [c for c in corona_cells if cellCoverage[c]]
-    if uncovered_corona:
-        print(f"INFEASIBLE: {len(uncovered_corona)} corona cells are not covered by any valid tile placement.")
-        print("Uncovered cells:")
-        print(*uncovered_corona, sep="\n")
-        
-    if covered_corona:
-        print(f"FEASIBLE: {len(covered_corona)} corona cells are covered by at least one valid tile placement.")
-        print(f"Covered cells: {covered_corona}")
-    else:
-        print("No cells in covered_corona.")
-    #return
-
-    # --- 2. Define Constraints ---
-    # Constraint 1: Tiles cannot overlap.
-    # This means any given cell in space can be covered by at most one tile.
-    for cell, potentialVars in cellCoverage.items():
-        model.Add(sum(potentialVars) <= 1)
-
-    # Constraint 2: The corona must be fully covered.
-    # This means every cell in the corona must be covered by at least one tile.
-    for cell in corona_cells:
-        model.Add(sum(cellCoverage.get(cell, [])) >= 1)
-
-    # --- 3. Solve ---
+    # 6. Solve
     solver = cp_model.CpSolver()
-    # Set number of threads for parallel search
     solver.parameters.num_search_workers = 8
+    solver.parameters.max_time_in_seconds = 600
+    
+    print("Solving monolithic model for 3 coronas...")
+    status = solver.Solve(model)
 
-    # --- 4. Output Results ---
-    solution_count = 0
-    with open("all_solutions.txt", "w") as f:
-        while True:
-            status = solver.Solve(model)
-
-            if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
-                solution_count += 1
-                print(f"Solution {solution_count} found!")
-                
-                current_solution_vars = []
-                f.write(f"--- Solution {solution_count} ---\n")
-                
-                for pos, var in placements.items():
-                    if solver.Value(var):
-                        current_solution_vars.append(var)
-                        print(f"{pos}")
-                        f.write(f"{pos}\n")
-                
-                print(f"Total tiles placed: {len(current_solution_vars)}")
-                
-                # --- Blocking Clause ---
-                # Option 1: Block this solution AND any superset (Recommended for tiling)
-                # current_solution_vars holds the variable OBJECTS (not values) that are True in this solution.
-                # sum(current_solution_vars) creates a symbolic expression for the *next* solve.
-                # len(current_solution_vars) is the integer count of tiles in *this* solution.
-                # The constraint: (var1 + var2 + ...) <= N - 1
-                # This forces at least one of the currently placed tiles to be removed in the next solution.
-                model.Add(sum(current_solution_vars) <= len(current_solution_vars) - 1)
-
-                # Option 2: Block ONLY this exact solution (Allows supersets)
-                # Use this if you specifically want to see solutions that are supersets of this one.
-                # vars_not_in_solution = [var for var in placements.values() if not solver.Value(var)]
-                # model.Add(sum(current_solution_vars) - sum(vars_not_in_solution) <= len(current_solution_vars) - 1)
-                
-            else:
-                print(f"No more solutions found. Status: {solver.StatusName(status)}")
-                print(f"Total solutions found: {solution_count}")
-                break
-
-    """
-    # Original single solution code for reference
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print("Solution found!")
-        # ...
-        with open("solution.txt", "w") as f:
-            for pos, var in placements.items():
-                if solver.Value(var):
-                    # ...
-    """
-
-    # print corona cells
-    nrCoronaCells = 0
-    filePath = "corona_cells.txt"
-    with open(filePath, "w") as f:
-        for pos in corona_cells:
-            nrCoronaCells += 1
-            f.write(f"{pos}\n")
-            #print(f"{pos}")
-    print(f"Total corona cells: {nrCoronaCells}")
-    print(f"Corona cells written to {filePath}")
-
-
-        # TODO: calculate overlap of each tile with the root tile and pairwise overlap!
-        #...
+        s1_tiles = [p for p, v in s1_placements.items() if solver.Value(v)]
+        s2_tiles = [p for p, v in s2_placements.items() if solver.Value(v)]
+        s3_tiles = [p for p, v in s3_placements.items() if solver.Value(v)]
         
+        with open("all_solutions.txt", "w") as f:
+            f.write("--- Monolithic Solution ---\n")
+            f.write("Corona 1:\n")
+            for t in s1_tiles:
+                print(f"S1: {t}")
+                f.write(f"{t}\n")
+            
+            f.write("Corona 2:\n")
+            for t in s2_tiles:
+                print(f"S2: {t}")
+                f.write(f"{t}\n")
+
+            f.write("Corona 3:\n")
+            for t in s3_tiles:
+                print(f"S3: {t}")
+                f.write(f"{t}\n")
+    else:
+        print("No solution found.")
 
 if __name__ == '__main__':
-    solve_surround()
+    solve_monolithic()
