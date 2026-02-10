@@ -1,0 +1,8 @@
+Generated 476 potential tile positions for s1.
+Generated 16994 potential tile positions for s2.
+Generated disjointness constraints.
+Generated surrounds center constraints.
+Generated S2 surrounds S1 constraints.
+generated model. Starting solver...
+Solving monolithic model for 2 corona(s)...
+No solution found: INFEASIBLE. The solver proved no solution exists within the constraints.

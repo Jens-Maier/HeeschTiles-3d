@@ -6,6 +6,7 @@
 
 
 from ortools.sat.python import cp_model
+import sys
 from collections import defaultdict
 from typing import List, Set, Tuple
 
@@ -27,29 +28,36 @@ def generateTilePyramids(x, y, z, rot):
     """
     # These are the local coordinates of the pyramids for a tile at origin in default orientation
     # tile description
-    base_pyramids = [
-        (0, 0, -1, 4),
-    
-        ( 0,  0, 0, 1),
-        ( 0,  0, 0, 3),
-        ( 0,  0, 0, 4),
-        ( 0,  0, 0, 5),
-        (-1,  0, 0, 0),
-        ( 0, -1, 0, 2),
-    
-        ( 0,  0, 1, 1),
-        ( 0,  0, 1, 3),
-        ( 0,  0, 1, 4),
-        ( 0,  0, 1, 5),
-        (-1,  0, 1, 0),
-        ( 0, -1, 1, 2),
+    #base_pyramids = [
+    #    (0, 0, -1, 4),
+    #
+    #    ( 0,  0, 0, 1),
+    #    ( 0,  0, 0, 3),
+    #    ( 0,  0, 0, 4),
+    #    ( 0,  0, 0, 5),
+    #    (-1,  0, 0, 0),
+    #    ( 0, -1, 0, 2),
+    #
+    #    ( 0,  0, 1, 1),
+    #    ( 0,  0, 1, 3),
+    #    ( 0,  0, 1, 4),
+    #    ( 0,  0, 1, 5),
+    #    (-1,  0, 1, 0),
+    #    ( 0, -1, 1, 2),
         
-        ( 0,  0, 2, 1),
-        ( 0,  0, 2, 3),
-        ( 0,  0, 2, 4),
-        ( 0,  0, 2, 5),
-        (-1,  0, 2, 0),
-        ( 0, -1, 2, 2),
+        #( 0,  0, 2, 1),
+        #( 0,  0, 2, 3),
+        #( 0,  0, 2, 4),
+        #( 0,  0, 2, 5),
+        #(-1,  0, 2, 0),
+        #( 0, -1, 2, 2),
+#
+        #( 0,  0, 3, 1),
+        #( 0,  0, 3, 3),
+        #( 0,  0, 3, 4),
+        #( 0,  0, 3, 5),
+        #(-1,  0, 3, 0),
+        #( 0, -1, 3, 2),
 
     #    (0, 0, 0, 0),
     #    (0, 0, 0, 1),
@@ -57,7 +65,7 @@ def generateTilePyramids(x, y, z, rot):
     #    (0, 0, 0, 4),
     #    (0, 0, 0, 5),
     #    (0, 1, 0, 3),
-    ]
+    #]
 
 
     #base_pyramids = [
@@ -76,6 +84,12 @@ def generateTilePyramids(x, y, z, rot):
     #    (1, 0, 0, 3),
     #    (1, 0, 0, 1),
     #]
+
+    base_pyramids = [
+        (0, 0, 0, 0), 
+        (0, 0, 0, 2),
+        (0, 1, 0, 3),
+    ]
 
 
     # NOTE: The center of rotation for the base tile is assumed to be (0,0,0).
@@ -304,6 +318,8 @@ def create_rotated_pyramid_coords(r, temp_pyramid_coords, center):
     return return_pyramid_coords
 
 def solve_monolithic():
+    search_surrounds = 2
+
     model = cp_model.CpModel()
     
     # 1. Setup Grid and Center
@@ -312,7 +328,7 @@ def solve_monolithic():
     
     # 2. Define Search Space (Bounding Box)
     # A radius of 5 should be sufficient for 2 coronas
-    search_radius = 15
+    search_radius = 5
     search_cells = set()
     for x in range(-search_radius, search_radius + 1):
         for y in range(-search_radius, search_radius + 1):
@@ -330,18 +346,20 @@ def solve_monolithic():
 
     # 4. Generate Tile Variables
     s1_placements = {}
-    s2_placements = {}
-    s3_placements = {}
+    if search_surrounds == 2:
+        s2_placements = {}
+        #s3_placements = {}
     
     cell_covered_by_s1 = defaultdict(list)
-    cell_covered_by_s2 = defaultdict(list)
-    cell_covered_by_s3 = defaultdict(list)
+    if search_surrounds == 2:
+        cell_covered_by_s2 = defaultdict(list)
+        #cell_covered_by_s3 = defaultdict(list)
     
     # Precompute neighbors of the center tile to filter S1 candidates
     center_neighbors_set = calculate_all_neighbor_pyramids(center_cells)
 
     # Iterate over potential tile origins
-    tile_origin_radius = 8
+    tile_origin_radius = 4 # Reduced from 5 to make the model smaller
     for x in range(-tile_origin_radius, tile_origin_radius + 1):
         for y in range(-tile_origin_radius, tile_origin_radius + 1):
             for z in range(-tile_origin_radius, tile_origin_radius + 1):
@@ -371,23 +389,27 @@ def solve_monolithic():
                     # Create variables for S2 and S3
                     if is_s2_or_s3_candidate:
                         s2_var = model.NewBoolVar(f's2_{pos}')
-                        s3_var = model.NewBoolVar(f's3_{pos}')
+                        if search_surrounds == 2:
+                            s3_var = model.NewBoolVar(f's3_{pos}')
                         
-                        s2_placements[pos] = s2_var
-                        s3_placements[pos] = s3_var
+                        if search_surrounds == 2:
+                            s2_placements[pos] = s2_var
+                            #s3_placements[pos] = s3_var
+                        if search_surrounds == 2:
+                            for c in cells:
+                                cell_covered_by_s2[c].append(s2_var)
+                                #cell_covered_by_s3[c].append(s3_var)
                         
-                        for c in cells:
-                            cell_covered_by_s2[c].append(s2_var)
-                            cell_covered_by_s3[c].append(s3_var)
-                            
-                        model.Add(s2_var + s3_var <= 1)
+                        if search_surrounds == 3:
+                            model.Add(s2_var + s3_var <= 1)
                     
     print(f"Generated {len(s1_placements)} potential tile positions for s1.")
-    print(f"Generated {len(s2_placements)} potential tile positions for s2.")
-    print(f"Generated {len(s3_placements)} potential tile positions for s3.")
+    if search_surrounds == 2:
+        print(f"Generated {len(s2_placements)} potential tile positions for s2.")
+        #print(f"Generated {len(s3_placements)} potential tile positions for s3.")
     
 
-    # 5. Constraints
+    #5. Constraints
     
     # A. Disjointness
     # For every cell, sum(s1) + sum(s2) <= 1
@@ -395,15 +417,17 @@ def solve_monolithic():
         if c in center_cells: continue
         
         s1_cov = cell_covered_by_s1[c]
-        s2_cov = cell_covered_by_s2[c]
-        s3_cov = cell_covered_by_s3[c]
-        
-        if s1_cov or s2_cov:
-            model.Add(sum(s1_cov) + sum(s2_cov) <= 1)
-        if s1_cov or s3_cov:
-            model.Add(sum(s1_cov) + sum(s3_cov) <= 1)
-        if s2_cov or s3_cov:
-            model.Add(sum(s2_cov) + sum(s3_cov) <= 1)
+        if search_surrounds == 2:
+            s2_cov = cell_covered_by_s2[c]
+            #s3_cov = cell_covered_by_s3[c]
+    #    
+        if search_surrounds == 2:
+            if s1_cov or s2_cov:
+                model.Add(sum(s1_cov) + sum(s2_cov) <= 1)
+                #if s1_cov or s3_cov:
+                #    model.Add(sum(s1_cov) + sum(s3_cov) <= 1)
+                #if s2_cov or s3_cov:
+                #    model.Add(sum(s2_cov) + sum(s3_cov) <= 1)
     print("Generated disjointness constraints.")
 
     # B. S1 Surrounds Center
@@ -421,43 +445,51 @@ def solve_monolithic():
     # C. S2 Surrounds S1
     # Logic: If any neighbor of cell c is covered by S1, then c must be covered by (S1 or S2).
     # This forces S2 to fill all gaps around S1.
-    for c in search_cells:
-        if c in center_cells: continue
-            
-        neighbors = cell_neighbors.get(c, [])
-        if not neighbors: continue
-            
-        # Collect all S1 variables from all neighbors
-        neighbor_s1_vars = []
-        for n in neighbors:
-            neighbor_s1_vars.extend(cell_covered_by_s1[n])
-            
-        if not neighbor_s1_vars: continue
-            
-        # Constraint: sum(neighbor_s1) <= BigM * (covered_by_s1(c) + covered_by_s2(c))
-        # If c is empty, then NO neighbor can be S1.
-        current_cell_covered = sum(cell_covered_by_s1[c]) + sum(cell_covered_by_s2[c])
-        model.Add(sum(neighbor_s1_vars) <= len(neighbor_s1_vars) * current_cell_covered)
-    print("Generated S2 surrounds S1 constraints.")
+    if search_surrounds == 2:
+        for c in search_cells:
+            if c in center_cells: continue
 
-    # D. S3 Surrounds S2
-    for c in search_cells:
-        if c in center_cells: continue
-            
-        neighbors = cell_neighbors.get(c, [])
-        if not neighbors: continue
-            
-        # Collect all S2 variables from all neighbors
-        neighbor_s2_vars = []
-        for n in neighbors:
-            neighbor_s2_vars.extend(cell_covered_by_s2[n])
-            
-        if not neighbor_s2_vars: continue
-            
-        # Constraint: sum(neighbor_s2) <= BigM * (covered_by_s1(c) + covered_by_s2(c) + covered_by_s3(c))
-        current_cell_covered = sum(cell_covered_by_s1[c]) + sum(cell_covered_by_s2[c]) + sum(cell_covered_by_s3[c])
-        model.Add(sum(neighbor_s2_vars) <= len(neighbor_s2_vars) * current_cell_covered)
-    print("Generated S3 surrounds S2 constraints.")
+
+            neighbors = cell_neighbors.get(c, [])
+            if not neighbors: continue
+
+            # Collect all S1 variables from all neighbors
+            neighbor_s1_vars = {}
+            for n in neighbors:
+                for var in cell_covered_by_s1.get(n, []):
+                    neighbor_s1_vars[var.Index()] = var
+
+            if not neighbor_s1_vars: continue
+
+            # Optimization: Use Boolean Logic instead of Linear Arithmetic
+            # Logic: If any neighbor is S1, then c must be covered by (S1 or S2).
+            # Equivalent to: neighbor_is_s1 IMPLIES (c_is_s1 OR c_is_s2)
+            target_literals = cell_covered_by_s1[c] #+ cell_covered_by_s2[c]
+            for n_var in neighbor_s1_vars.values():
+                model.AddBoolOr([n_var.Not()] + target_literals)
+        print("Generated S2 surrounds S1 constraints.")
+
+    if search_surrounds == 3:
+        # D. S3 Surrounds S2
+        for c in search_cells:
+            if c in center_cells: continue
+                
+            neighbors = cell_neighbors.get(c, [])
+            if not neighbors: continue
+                
+            # Collect all S2 variables from all neighbors
+            neighbor_s2_vars = {}
+            for n in neighbors:
+                for var in cell_covered_by_s2.get(n, []):
+                    neighbor_s2_vars[var.Index()] = var
+                
+            if not neighbor_s2_vars: continue
+                
+            # Logic: If any neighbor is S2, then c must be covered by (S1 or S2 or S3).
+            target_literals = cell_covered_by_s1[c] #+ cell_covered_by_s2[c] #+ cell_covered_by_s3[c]
+            for n_var in neighbor_s2_vars.values():
+                model.AddBoolOr([n_var.Not()] + target_literals)
+        print("Generated S3 surrounds S2 constraints.")
 
     print("generated model. Starting solver...")
 
@@ -465,8 +497,9 @@ def solve_monolithic():
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 8
     solver.parameters.max_time_in_seconds = 600
+    solver.parameters.log_search_progress = True
     
-    print("Solving monolithic model for 3 coronas...")
+    print(f"Solving monolithic model for {search_surrounds} corona(s)...")
     status = solver.Solve(model)
 
     # Generated 1464 potential tile positions for s1.
@@ -483,27 +516,48 @@ def solve_monolithic():
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print("Solution found!")
         s1_tiles = [p for p, v in s1_placements.items() if solver.Value(v)]
-        s2_tiles = [p for p, v in s2_placements.items() if solver.Value(v)]
-        s3_tiles = [p for p, v in s3_placements.items() if solver.Value(v)]
+        if search_surrounds == 2:
+            s2_tiles = [p for p, v in s2_placements.items() if solver.Value(v)]
+            #s3_tiles = [p for p, v in s3_placements.items() if solver.Value(v)]
         
-        with open("all_solutions.txt", "w") as f:
+        with open("all_solutions_heesch1_tile.txt", "w") as f:
             f.write("--- Monolithic Solution ---\n")
             f.write("Corona 1:\n")
             for t in s1_tiles:
                 print(f"S1: {t}")
                 f.write(f"{t}\n")
             
-            f.write("Corona 2:\n")
-            for t in s2_tiles:
-                print(f"S2: {t}")
-                f.write(f"{t}\n")
+            if search_surrounds == 2:
+                f.write("Corona 2:\n")
+                for t in s2_tiles:
+                    print(f"S2: {t}")
+                    f.write(f"{t}\n")
 
-            f.write("Corona 3:\n")
-            for t in s3_tiles:
-                print(f"S3: {t}")
-                f.write(f"{t}\n")
+            if search_surrounds == 3:
+                f.write("Corona 3:\n")
+                for t in s3_tiles:
+                    print(f"S3: {t}")
+                    f.write(f"{t}\n")
+    elif status == cp_model.INFEASIBLE:
+        print("No solution found: INFEASIBLE. The solver proved no solution exists within the constraints.")
+    elif status == cp_model.UNKNOWN:
+        print("No solution found: UNKNOWN. The solver reached the time limit (timeout) without finding a solution.")
     else:
-        print("No solution found.")
+        print(f"No solution found. Status: {status}")
 
 if __name__ == '__main__':
+    # Redirect stdout and stderr to a file while keeping console output
+    log_file = open("heesch_solver.log", "w")
+    class Tee:
+        def __init__(self, *files):
+            self.files = files
+        def write(self, obj):
+            for f in self.files:
+                f.write(obj)
+                f.flush()
+        def flush(self):
+            for f in self.files:
+                f.flush()
+    sys.stdout = Tee(sys.stdout, log_file)
+    sys.stderr = sys.stdout
     solve_monolithic()

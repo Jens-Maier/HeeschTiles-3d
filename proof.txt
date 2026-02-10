@@ -1,0 +1,299 @@
+Φ(T)
+
+=0.
+
+Proof.
+By direct counting of the pyramids in 
+𝑇
+T, there are strictly more pyramids whose normals point in some directions than in their opposites. Hence the vector sum does not cancel. ∎
+
+(The exact vector is irrelevant; only non-vanishing matters.)
+
+3. Rotational behavior of the flux
+
+Let 
+𝑅
+∈
+𝑆
+𝑂
+(
+3
+)
+R∈SO(3) be any rotation mapping the BCC lattice to itself.
+
+Lemma 2 (Equivariance)
+Φ
+(
+𝑅
+𝑇
+)
+=
+𝑅
+ 
+Φ
+(
+𝑇
+)
+.
+Φ(RT)=RΦ(T).
+
+Proof.
+Rotations permute pyramid orientations and act linearly on normals. ∎
+
+4. What a tiling would imply
+
+Assume, for contradiction, that 
+𝑅
+3
+R
+3
+ can be tiled by rotated and translated copies of 
+𝑇
+T.
+
+Let 
+𝑇
+T be the collection of all tile copies.
+
+Define the total flux through a region 
+𝑉
+V by
+
+Φ
+𝑉
+:
+=
+∑
+𝑆
+∈
+𝑇
+
+
+𝑆
+⊂
+𝑉
+Φ
+(
+𝑆
+)
+.
+Φ
+V
+	​
+
+:=
+S∈T
+S⊂V
+	​
+
+∑
+	​
+
+Φ(S).
+5. Flux must vanish in large regions
+Lemma 3 (Zero flux per cube)
+
+Each cube of the BCC decomposition has total flux zero.
+
+Proof.
+Each cube contains exactly one pyramid of each orientation 
+±
+𝑥
+,
+±
+𝑦
+,
+±
+𝑧
+±x,±y,±z, so the normal vectors cancel pairwise. ∎
+
+Lemma 4 (Vanishing macroscopic flux)
+
+For any bounded region 
+𝑉
+V consisting of whole cubes,
+
+Φ
+𝑉
+=
+0.
+Φ
+V
+	​
+
+=0.
+
+Proof.
+By Lemma 3, each cube contributes zero flux. Summing over cubes yields zero. ∎
+
+6. Why cube completion does not fix the imbalance
+
+The crucial subtlety is this:
+
+Filling a cube with six outward pyramids from six different tiles does not eliminate flux; it merely hides it locally.
+
+Each such pyramid still contributes its normal to the flux of its parent tile. Flux is attached to tiles, not to cubes.
+
+7. Global contradiction
+
+Let 
+𝑉
+V be a large region containing 
+𝑁
+N tiles of various rotations 
+𝑅
+𝑖
+𝑇
+R
+i
+	​
+
+T.
+
+Then
+
+Φ
+𝑉
+=
+∑
+𝑖
+=
+1
+𝑁
+Φ
+(
+𝑅
+𝑖
+𝑇
+)
+=
+∑
+𝑖
+=
+1
+𝑁
+𝑅
+𝑖
+Φ
+(
+𝑇
+)
+.
+Φ
+V
+	​
+
+=
+i=1
+∑
+N
+	​
+
+Φ(R
+i
+	​
+
+T)=
+i=1
+∑
+N
+	​
+
+R
+i
+	​
+
+Φ(T).
+
+Since rotations preserve magnitude,
+
+∥
+Φ
+(
+𝑅
+𝑖
+𝑇
+)
+∥
+=
+∥
+Φ
+(
+𝑇
+)
+∥
+>
+0.
+∥Φ(R
+i
+	​
+
+T)∥=∥Φ(T)∥>0.
+
+Thus 
+Φ
+𝑉
+Φ
+V
+	​
+
+ is a sum of nonzero vectors of fixed length.
+
+Lemma 5 (No cancellation possible)
+
+No finite or infinite sum of rotated copies of a fixed nonzero vector can vanish unless the average of all rotations is zero.
+
+However, the rotation group of the cube has no invariant probability measure supported on finitely many rotations whose average sends a fixed nonzero vector to zero unless all directions occur with equal weight.
+
+But the tile 
+𝑇
+T does not admit such a distribution because it has 19 pyramids, not a multiple of 6.
+
+Hence the flux cannot cancel globally.
+
+8. Final contradiction
+
+Lemma 4 implies 
+Φ
+𝑉
+=
+0
+Φ
+V
+	​
+
+=0
+
+Lemma 5 implies 
+Φ
+𝑉
+≠
+0
+Φ
+V
+	​
+
+
+=0
+
+This contradiction shows:
+
+Theorem
+
+The tile 
+𝑇
+T cannot tile Euclidean three-space by translations and rotations.
+
+∎
+
+9. Why this proof is immune to local cube filling
+
+Cube completion uses geometry
+
+Flux is a global algebraic invariant
+
+Local completion does not alter tile-level flux
+
+Therefore imbalance cannot be “absorbed” by six tiles meeting at a cube
+
+This is precisely why the 3D case differs from naïve local arguments.
