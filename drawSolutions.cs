@@ -4,9 +4,10 @@ using System.Threading.Tasks;
 using UnityEngine;
 using System.Linq;
 using System.IO;
+using System;
 
 
-namespace drawClusterNamespace
+namespace drawSolutionsNamespace
 {
 
     public struct int3
@@ -85,13 +86,30 @@ namespace drawClusterNamespace
     }
 
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-    public class drawCluster : MonoBehaviour
+    public class drawSolutions : MonoBehaviour
     {
-        public int nrPyramids;
         public int shapeNr;
+        private int lastShapeNr = -1;
 
         public List<pyramidCoord> pyramids;
         public List<pyramidCoord> surroundPyramids;
+
+        public List<pyramidCoord> meshPyramids;
+        public List<pyramidCoord> surroundPyramidsS1;
+        public List<pyramidCoord> surroundPyramidsS2;
+
+        public List<List<pyramidCoord>> allBases;
+        public List<List<posRot>> allS1;
+        public List<List<posRot>> allS2;
+
+        List<Vector3> meshVertices;
+        List<int> meshTriangles;
+
+        List<Vector3> surroundVerticesS1;
+        List<int> surroundTrianglesS1;
+
+        List<Vector3> surroundVerticesS2;
+        List<int> surroundTrianglesS2;
 
         public List<Vector3> vertices;
         public List<int> triangles;
@@ -107,16 +125,35 @@ namespace drawClusterNamespace
         public MeshRenderer surroundMeshRenderer;
         public GameObject surroundGO;
 
+        public Mesh surroundMesh2;
+        public MeshFilter surroundMeshFilter2;
+        public MeshRenderer surroundMeshRenderer2;
+        public GameObject surroundGO2;
+
         public Material material;
-        public Material surroundMaterial;
+        public Material surroundMaterial1;
+        public Material surroundMaterial2;
+
+
+        //string path = Application.dataPath + "/Scripts/all_solutions_heesch1_tile.txt"; // -> tiles
+        //string path = Application.dataPath + "/Scripts/corona_cells.txt"; // -> pyramids
+        string path = Application.dataPath + "/Scripts/heesch_solver_summary.txt";
 
 
         void Start()
         {
             material = new Material(Shader.Find("Autodesk Interactive"));
             material.color = Color.red;
-            //surroundMaterial = new Material(Shader.Find("Aurodesk Interactive"));
-            //surroundMaterial.color = Color.blue;
+            Shader surroundShader = Shader.Find("Autodesk Interactive");
+            if (surroundShader == null)
+            {
+                Debug.LogError("Shader 'Autodesk Interactive' not found. Please ensure it is included in the project's 'Always Included Shaders' list.");
+                return;
+            }
+            surroundMaterial1 = new Material(surroundShader);
+            surroundMaterial1.color = new Color(0.3f, 0.3f, 1f);
+            surroundMaterial2 = new Material(surroundShader);
+            surroundMaterial2.color = new Color(1f, 0.3f, 0.3f);
 
             meshRenderer = GetComponent<MeshRenderer>();
             meshRenderer.material = material;
@@ -125,10 +162,20 @@ namespace drawClusterNamespace
             surroundGO.AddComponent<MeshFilter>();
             surroundGO.AddComponent<MeshRenderer>();
             surroundMeshRenderer = surroundGO.GetComponent<MeshRenderer>();
-            surroundMeshRenderer.material = surroundMaterial;
+            surroundMeshRenderer.material = surroundMaterial1;
+
+            surroundGO2 = new GameObject();
+            surroundGO2.AddComponent<MeshFilter>();
+            surroundGO2.AddComponent<MeshRenderer>();
+            surroundMeshRenderer2 = surroundGO2.GetComponent<MeshRenderer>();
+            surroundMeshRenderer2.material = surroundMaterial2;
 
             pyramids = new List<pyramidCoord>();
             surroundPyramids = new List<pyramidCoord>();
+
+            allBases = new List<List<pyramidCoord>>();
+            allS1 = new List<List<posRot>>();
+            allS2 = new List<List<posRot>>();
 
             vertices = new List<Vector3>();
             triangles = new List<int>();
@@ -142,14 +189,20 @@ namespace drawClusterNamespace
             surroundMeshFilter = surroundGO.GetComponent<MeshFilter>();
             surroundMesh = new Mesh();
 
-            pyramids = generateSingleTilePyramidCoords(new int3(0, 0, 0), 0);
-            string path = Application.dataPath + "/Scripts/all_solutions_heesch1_tile.txt"; // -> tiles
-            //string path = Application.dataPath + "/Scripts/corona_cells.txt"; // -> pyramids
-            
-            ImportTilesFromFile(path);
-            //ImportPyramidsFromFile(path);
+            surroundMeshFilter2 = surroundGO2.GetComponent<MeshFilter>();
+            surroundMesh2 = new Mesh();
 
-            generateMesh(vertices, triangles, pyramids);
+            //pyramids = generateSingleTilePyramidCoords(new int3(0, 0, 0), 0);
+            
+
+            //ImportTilesFromFile(path);
+            //ImportPyramidsFromFile(path);
+            ImportFromSolverLog(path);
+
+            //Debug.Log("allBases.Count: " + allBases.Count + ", shapeNr: " + shapeNr);
+            //pyramids = new List<pyramidCoord>(allBases[shapeNr]);
+            //
+            //generateMesh(vertices, triangles, pyramids);
             mesh.SetVertices(vertices);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateNormals();
@@ -157,10 +210,262 @@ namespace drawClusterNamespace
 
         }
 
+        void Update()
+        {
+            if (shapeNr != lastShapeNr)
+            {
+                TryBuildShape();
+                lastShapeNr = shapeNr;
+                if (allBases != null)
+                {
+                    Debug.Log("allBases.Count: " + allBases.Count + ", shapeNr: " + shapeNr);
+                }
+                else
+                {
+                    Debug.Log("allBases is null!");
+                }
+                pyramids = new List<pyramidCoord>(allBases[shapeNr]);
+                Debug.Log("base tile made of " + pyramids.Count + " pyramids");
+                generateMesh(vertices, triangles, pyramids);
+                mesh.SetVertices(vertices);
+                mesh.SetTriangles(triangles, 0);
+                mesh.RecalculateNormals();
+                meshFilter.mesh = mesh;
+            }
+        }
+
         public static int3 add(int3 a, int3 b)
         {
             return new int3(a.x + b.x, a.y + b.y, a.z + b.z);
         }
+
+        public void ImportFromSolverLog(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                Debug.LogError($"File not found at: {filePath}");
+                return;
+            }
+            else
+            {
+                Debug.Log($"File found at: {filePath}");
+            }
+
+            allBases.Clear();
+            allS1.Clear();
+            allS2.Clear();
+
+            string[] lines = File.ReadAllLines(filePath);
+
+            List<pyramidCoord> currentBase = new List<pyramidCoord>();
+            List<posRot> currentS1 = new List<posRot>();
+            List<posRot> currentS2 = new List<posRot>();
+
+            bool corona1Feasible = false;
+            bool corona2Infeasible = false;
+            bool corona3Infeasible = false;
+
+            int currentCorona = 0;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string rawLine = lines[i];
+                string line = rawLine.Trim();
+
+                if (line.StartsWith("Testing Shape"))
+                {
+                    Debug.Log($"parsed line 'Testing Shape': {line}");
+                    // Save previous shape if valid
+                    if (currentBase.Count > 0)
+                    {
+                        //if (corona1Feasible && (corona2Infeasible || corona3Infeasible))
+                        //{
+                            allBases.Add(currentBase);
+                            allS1.Add(currentS1);
+                            allS2.Add(currentS2);
+                        //}
+                    }
+
+                    // Reset per shape
+                    currentBase = new List<pyramidCoord>();
+                    currentS1 = new List<posRot>();
+                    currentS2 = new List<posRot>();
+
+                    corona1Feasible = false;
+                    corona2Infeasible = false;
+                    corona3Infeasible = false;
+                }
+
+                if (line.StartsWith("Pyramids:"))
+                {
+                    Debug.Log($"parsed line 'Pyramids': {line}");
+                    currentBase = ParsePyramidCoordList(line);
+                    Debug.Log("parsed pyramids count: " + currentBase.Count);
+                }
+
+                if (line.StartsWith("Coronas:"))
+                {
+                    string[] parts = line.Split(':');
+                    currentCorona = int.Parse(parts[1].Trim().Split(' ')[0]);
+                }
+
+                if (line.Contains("Solver Status:"))
+                {
+                    if (line.Contains("OPTIMAL") && currentCorona == 1)
+                        corona1Feasible = true;
+
+                    if (line.Contains("INFEASIBLE") && currentCorona == 2)
+                        corona2Infeasible = true;
+
+                    if (line.Contains("INFEASIBLE") && currentCorona == 3)
+                        corona3Infeasible = true;
+                }
+
+                if (line.StartsWith("Solution Found:"))
+                {
+                    Debug.Log("parsing Solution found!");
+                    // Check next line for S1
+                    if (i + 1 < lines.Length)
+                    {
+                        string nextLine = lines[i + 1].Trim();
+                        if (nextLine.StartsWith("S1:"))
+                        {
+                            currentS1 = ParsePosRotList(nextLine);
+                            // Check line after S1 for S2
+                            if (i + 2 < lines.Length && lines[i + 2].Trim().StartsWith("S2:"))
+                            {
+                                currentS2 = ParsePosRotList(lines[i + 2].Trim());
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Handle the last shape in the file
+            if (currentBase.Count > 0)
+            {
+                if (corona1Feasible && (corona2Infeasible || corona3Infeasible))
+                {
+                    allBases.Add(currentBase);
+                    allS1.Add(currentS1);
+                    allS2.Add(currentS2);
+                }
+            }
+
+            Debug.Log($"Imported {allBases.Count} shapes.");
+            if (allBases.Count > 0)
+            {
+                TryBuildShape();
+            }
+        }
+
+        private List<pyramidCoord> ParsePyramidCoordList(string line)
+        {
+            List<pyramidCoord> result = new List<pyramidCoord>();
+
+            int start = line.IndexOf('[');
+            int end = line.LastIndexOf(']');
+
+            if (start < 0 || end < 0) return result;
+
+            string listContent = line.Substring(start + 1, end - start - 1);
+
+            string[] entries = listContent.Split(new string[] { "), (" }, StringSplitOptions.None);
+
+            foreach (string entryRaw in entries)
+            {
+                string entry = entryRaw.Replace("(", "").Replace(")", "").Replace(" ", "");
+                string[] parts = entry.Split(',');
+
+                if (parts.Length == 4)
+                {
+                    int x = int.Parse(parts[0]);
+                    int y = int.Parse(parts[1]);
+                    int z = int.Parse(parts[2]);
+                    int pyr = int.Parse(parts[3]);
+
+                    result.Add(new pyramidCoord(new int3(x, y, z), pyr));
+                }
+            }
+            return result;
+        }
+
+        private List<posRot> ParsePosRotList(string line)
+        {
+            List<posRot> result = new List<posRot>();
+
+            int start = line.IndexOf('[');
+            int end = line.LastIndexOf(']');
+
+            if (start < 0 || end < 0) return result;
+
+            string listContent = line.Substring(start + 1, end - start - 1);            
+
+            string[] entries = listContent.Split(new string[] { "), (" }, StringSplitOptions.None);
+            foreach (string entryRaw in entries)            
+            {
+                string entry = entryRaw.Replace("(", "").Replace(")", "").Replace(" ",      "");
+                string[] parts = entry.Split(',');
+
+                if (parts.Length == 4)
+                {
+                    int x = int.Parse(parts[0]);
+                    int y = int.Parse(parts[1]);
+                    int z = int.Parse(parts[2]);
+                    int r = int.Parse(parts[3]);
+
+                    result.Add(new posRot(new int3(x, y, z), r));
+                }
+            }
+            return result;
+        }
+
+        private void TryBuildShape()
+        {
+            if (allBases == null) return;
+            if (allBases.Count == 0) return;
+            
+            // Ensure shapeNr is within bounds
+            if (shapeNr < 0) shapeNr = 0;
+            if (shapeNr >= allBases.Count) shapeNr = allBases.Count - 1;
+
+            // S1
+            List<Vector3> surroundVerticesS1 = new List<Vector3>();
+            List<int> surroundTrianglesS1 = new List<int>();
+            List<pyramidCoord> surroundPyramidsS1 = new List<pyramidCoord>();
+            foreach (posRot pr in allS1[shapeNr])
+            {
+                surroundPyramidsS1.AddRange(generateSingleTilePyramidCoords(pr.pos, pr.rot));
+            }
+            generateMesh(surroundVerticesS1, surroundTrianglesS1, surroundPyramidsS1);
+
+            surroundMesh.Clear();
+            surroundMesh.SetVertices(surroundVerticesS1);
+            surroundMesh.SetTriangles(surroundTrianglesS1, 0);
+            surroundMesh.RecalculateNormals();
+            surroundMeshFilter.mesh = surroundMesh;
+            Debug.Log("generated S1 mesh!");
+
+            // S2
+            List<Vector3> surroundVerticesS2 = new List<Vector3>();
+            List<int> surroundTrianglesS2 = new List<int>();
+            List<pyramidCoord> surroundPyramidsS2 = new List<pyramidCoord>();
+            foreach (posRot pr in allS2[shapeNr])
+            {
+                surroundPyramidsS2.AddRange(generateSingleTilePyramidCoords(pr.pos, pr.rot));
+            }
+            generateMesh(surroundVerticesS2, surroundTrianglesS2, surroundPyramidsS2);
+
+            surroundMesh2.Clear();
+            surroundMesh2.SetVertices(surroundVerticesS2);
+            surroundMesh2.SetTriangles(surroundTrianglesS2, 0);
+            surroundMesh2.RecalculateNormals();
+            surroundMeshFilter2.mesh = surroundMesh2;
+            Debug.Log("generated S2 mesh!");
+        }
+
+
+
 
         public void ImportPyramidsFromFile(string filePath)
         {
@@ -208,6 +513,7 @@ namespace drawClusterNamespace
             //try
             //{
                 string[] lines = File.ReadAllLines(filePath);
+                Debug.Log($"parsed {lines.Length} lines rom file: {filePath}");
 
                 foreach (string line in lines)
                 {
@@ -263,90 +569,15 @@ namespace drawClusterNamespace
 
         public List<pyramidCoord> generateSingleTilePyramidCoords(int3 pos, int r)
         {
-
             List<pyramidCoord> tempPyramidCoords = new List<pyramidCoord>();
 
-            // --- tile description ---
-            //
-            //              Y
-            //              ^
-            //              |
-            //              +------> Z
-            //             /
-            //            X  
-
-            //                  2 1
-            //                  |/
-            //              5 --+-- 4
-            //                 /|
-            //                0 3  
-
-
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, -1)), 4));
-            //            
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 0)), 1));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 0)), 3));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 0)), 4));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 0)), 5));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(-1,  0, 0)), 0));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0, -1, 0)), 2));
-            //
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 1)), 1));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 1)), 3));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 1)), 4));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 1)), 5));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(-1,  0, 1)), 0));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0, -1, 1)), 2));
-//
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 2)), 1));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 2)), 3));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 2)), 4));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0,  0, 2)), 5));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(-1,  0, 2)), 0));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3( 0, -1, 2)), 2));
-            // --- ---
-
-            // --- test tile ---
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 0));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 1));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 2));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 4));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 5));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 1, 0)), 3));
-
-            // --- test tile ---
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 0));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 1));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 2));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 3));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 4));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 5));
-
-            // --- simple tile ---
-            // tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 0));
-            // tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 2));
-            // tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 4));
-
-            // --- simple tile ---
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 0));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 1));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 4));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 5));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 2));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 1, 0)), 3));
-
-            // --- simple tile ---
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 0));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 3));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 1));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(1, 0, 0)), 0));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(1, 0, 0)), 3));
-            //tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(1, 0, 0)), 1));
-            
-            // --- heesch 1 tile ---
-            tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 0)); 
-            tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 0, 0)), 2));
-            tempPyramidCoords.Add(new pyramidCoord(add(pos, new int3(0, 1, 0)), 3));
+            if (allBases != null && shapeNr >= 0 && shapeNr < allBases.Count)
+            {
+                foreach (pyramidCoord p in allBases[shapeNr])
+                {
+                    tempPyramidCoords.Add(new pyramidCoord(add(pos, p.pos), p.pyramid));
+                }
+            }
 
             return createRotatedPyramidCoords(r % 24, tempPyramidCoords, pos);
         }
@@ -820,7 +1051,7 @@ namespace drawClusterNamespace
                         vertices.Add(new Vector3((float)p.pos.x, (float)p.pos.y, (float)p.pos.z) + new Vector3(0.5f, -0.5f, -0.5f));// cw viewed from center
                         break;
                     default:
-                        Debug.LogError("ERROR invalid pyramid!");
+                        Debug.LogError("ERROR invalid pyramid!: " + p.pyramid);
                         break;
                 }
             }
