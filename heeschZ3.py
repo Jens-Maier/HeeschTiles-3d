@@ -345,24 +345,19 @@ def solve_monolithic(search_surrounds, base_shape, previous_solution=None, shape
 
     # 4. Generate Tile Variables
     s1_placements = {}
-    if search_surrounds == 2:
-        s2_placements = {}
-    if search_surrounds == 3:
-        s2_placements = {}
-        s3_placements = {}
+    s2_placements = {}
+    s3_placements = {}
     
     cell_covered_by_s1 = defaultdict(list)
-    if search_surrounds == 2:
-        cell_covered_by_s2 = defaultdict(list)
-    if search_surrounds == 3:
-        cell_covered_by_s2 = defaultdict(list)
-        cell_covered_by_s3 = defaultdict(list)
+    cell_covered_by_s2 = defaultdict(list)
+    cell_covered_by_s3 = defaultdict(list)
     
     # Precompute neighbors of the center tile to filter S1 candidates
     center_neighbors_set = calculate_all_neighbor_pyramids(center_cells)
 
-    # Iterate over potential tile origins
-    tile_origin_radius = 4 # Reduced from 5 to make the model smaller
+    # --- Step 1: Generate all valid geometries in search space ---
+    valid_geometries = []
+    tile_origin_radius = 5
     for x in range(-tile_origin_radius, tile_origin_radius + 1):
         for y in range(-tile_origin_radius, tile_origin_radius + 1):
             for z in range(-tile_origin_radius, tile_origin_radius + 1):
@@ -377,45 +372,74 @@ def solve_monolithic(search_surrounds, base_shape, previous_solution=None, shape
                     # Optimization: Tile must not overlap center
                     if any(c in center_cells for c in cells):
                         continue
-                        
-                    # Optimization: S1 tiles must touch the center tile
-                    is_s1_candidate = any(c in center_neighbors_set for c in cells)
-                    is_s2_or_s3_candidate = not is_s1_candidate
-
-                    # Create variables for S1
-                    if is_s1_candidate:
-                        s1_var = model.NewBoolVar(f's1_{pos}')
-                        s1_placements[pos] = s1_var
-                        for c in cells:
-                            cell_covered_by_s1[c].append(s1_var)
-
-                    # Create variables for S2 and S3
-                    if is_s2_or_s3_candidate:
-                        s2_var = model.NewBoolVar(f's2_{pos}')
-                        if search_surrounds >= 2:
-                            s3_var = model.NewBoolVar(f's3_{pos}')
-                        
-                        if search_surrounds == 2:
-                            s2_placements[pos] = s2_var
-                        if search_surrounds == 3:
-                            s2_placements[pos] = s2_var
-                            s3_placements[pos] = s3_var
-                        if search_surrounds == 2:
-                            for c in cells:
-                                cell_covered_by_s2[c].append(s2_var)
-                        if search_surrounds == 3:
-                            for c in cells:
-                                cell_covered_by_s2[c].append(s2_var)
-                                cell_covered_by_s3[c].append(s3_var)
-                        
-                        if search_surrounds == 3:
-                            model.Add(s2_var + s3_var <= 1)
                     
+                    valid_geometries.append((pos, cells))
+
+    # --- Step 2: Identify S1 Candidates ---
+    s1_candidates = []
+    s1_occupied_cells = set()
+    
+    for pos, cells in valid_geometries:
+        if any(c in center_neighbors_set for c in cells):
+            s1_candidates.append((pos, cells))
+            s1_occupied_cells.update(cells)
+            
+    # Create S1 variables
+    for pos, cells in s1_candidates:
+        s1_var = model.NewBoolVar(f's1_{pos}')
+        s1_placements[pos] = s1_var
+        for c in cells:
+            cell_covered_by_s1[c].append(s1_var)
+            
     print(f"Generated {len(s1_placements)} potential tile positions for s1.")
-    if search_surrounds == 2:
+
+    # --- Step 3: Identify S2 Candidates ---
+    if search_surrounds >= 2:
+        s1_boundary = calculate_all_neighbor_pyramids(s1_occupied_cells)
+        s2_candidates = []
+        s2_occupied_cells = set()
+        
+        s1_pos_set = set(s1_placements.keys())
+        
+        for pos, cells in valid_geometries:
+            if pos in s1_pos_set: continue
+            
+            # Must touch at least one valid S1 boundary location
+            if any(c in s1_boundary for c in cells):
+                s2_candidates.append((pos, cells))
+                s2_occupied_cells.update(cells)
+        
+        for pos, cells in s2_candidates:
+            s2_var = model.NewBoolVar(f's2_{pos}')
+            s2_placements[pos] = s2_var
+            for c in cells:
+                cell_covered_by_s2[c].append(s2_var)
+        
         print(f"Generated {len(s2_placements)} potential tile positions for s2.")
+
+    # --- Step 4: Identify S3 Candidates ---
     if search_surrounds == 3:
-        print(f"Generated {len(s2_placements)} potential tile positions for s2.")
+        s2_boundary = calculate_all_neighbor_pyramids(s2_occupied_cells)
+        s3_candidates = []
+        
+        s1_pos_set = set(s1_placements.keys())
+        
+        for pos, cells in valid_geometries:
+            if pos in s1_pos_set: continue
+            
+            # Must touch at least one valid S2 boundary location
+            if any(c in s2_boundary for c in cells):
+                s3_candidates.append((pos, cells))
+        
+        for pos, cells in s3_candidates:
+            s3_var = model.NewBoolVar(f's3_{pos}')
+            s3_placements[pos] = s3_var
+            for c in cells:
+                cell_covered_by_s3[c].append(s3_var)
+            
+            if pos in s2_placements:
+                model.Add(s2_placements[pos] + s3_var <= 1)
+                
         print(f"Generated {len(s3_placements)} potential tile positions for s3.")
 
     # --- Apply Hints from Previous Solution ---
@@ -540,7 +564,7 @@ def solve_monolithic(search_surrounds, base_shape, previous_solution=None, shape
     # 6. Solve
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 8
-    solver.parameters.max_time_in_seconds = 600
+    solver.parameters.max_time_in_seconds = 3600
     solver.parameters.log_search_progress = True
     
     print(f"Solving monolithic model for {search_surrounds} corona(s)...")
