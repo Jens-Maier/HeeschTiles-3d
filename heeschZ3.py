@@ -22,7 +22,7 @@ ROT_MAP_1_FALSE = {0: 5, 1: 4, 2: 2, 3: 3, 4: 0, 5: 1}
 ROT_MAP_2_TRUE = {0: 3, 1: 2, 2: 0, 3: 1, 4: 4, 5: 5}
 ROT_MAP_2_FALSE = {0: 2, 1: 3, 2: 1, 3: 0, 4: 4, 5: 5}
 
-def generateTilePyramids(x, y, z, rot):
+def generateTilePyramids(x, y, z, rot, base_pyramids):
     """
     Generates pyramid coordinates for a tile at (x,y,z) with rotation 'rot'.
     """
@@ -76,20 +76,20 @@ def generateTilePyramids(x, y, z, rot):
     #    (0, 0, 0, 4),
     #    #(0, 0, 0, 5),
     #]
-    #base_pyramids = [
-    #    (0, 0, 0, 0),
-    #    (0, 0, 0, 3),
-    #    (0, 0, 0, 1),
-    #    (1, 0, 0, 0),
-    #    (1, 0, 0, 3),
-    #    (1, 0, 0, 1),
-    #]
+    # base_pyramids = [
+    #     (0, 0, 0, 0),
+    #     (0, 0, 0, 1),
+    #     (0, 0, 0, 2),
+    #     (0, 0, 0, 3),
+    #     (0, 0, 0, 4),
+    #     (0, 0, 0, 5),
+    # ]
 
-    base_pyramids = [
-        (0, 0, 0, 0), 
-        (0, 0, 0, 2),
-        (0, 1, 0, 3),
-    ]
+    #base_pyramids = [
+        #(0, 0, 0, 0), 
+        #(0, 0, 0, 2),
+        #(0, 1, 0, 3),
+    #]
 
 
     # NOTE: The center of rotation for the base tile is assumed to be (0,0,0).
@@ -317,18 +317,17 @@ def create_rotated_pyramid_coords(r, temp_pyramid_coords, center):
         
     return return_pyramid_coords
 
-def solve_monolithic():
-    search_surrounds = 2
+def solve_monolithic(search_surrounds, base_shape, previous_solution=None, shape_index=None):
 
     model = cp_model.CpModel()
     
     # 1. Setup Grid and Center
     center_tile_pos = (0, 0, 0, 0)
-    center_cells = set(generateTilePyramids(*center_tile_pos))
+    center_cells = set(generateTilePyramids(*center_tile_pos, base_shape))
     
     # 2. Define Search Space (Bounding Box)
     # A radius of 5 should be sufficient for 2 coronas
-    search_radius = 5
+    search_radius = 6
     search_cells = set()
     for x in range(-search_radius, search_radius + 1):
         for y in range(-search_radius, search_radius + 1):
@@ -348,12 +347,16 @@ def solve_monolithic():
     s1_placements = {}
     if search_surrounds == 2:
         s2_placements = {}
-        #s3_placements = {}
+    if search_surrounds == 3:
+        s2_placements = {}
+        s3_placements = {}
     
     cell_covered_by_s1 = defaultdict(list)
     if search_surrounds == 2:
         cell_covered_by_s2 = defaultdict(list)
-        #cell_covered_by_s3 = defaultdict(list)
+    if search_surrounds == 3:
+        cell_covered_by_s2 = defaultdict(list)
+        cell_covered_by_s3 = defaultdict(list)
     
     # Precompute neighbors of the center tile to filter S1 candidates
     center_neighbors_set = calculate_all_neighbor_pyramids(center_cells)
@@ -365,7 +368,7 @@ def solve_monolithic():
             for z in range(-tile_origin_radius, tile_origin_radius + 1):
                 for rot in range(24):
                     pos = (x, y, z, rot)
-                    cells = generateTilePyramids(*pos)
+                    cells = generateTilePyramids(*pos, base_shape)
                     
                     # Optimization: Tile must be within search space
                     if not all(c in search_cells for c in cells):
@@ -389,16 +392,21 @@ def solve_monolithic():
                     # Create variables for S2 and S3
                     if is_s2_or_s3_candidate:
                         s2_var = model.NewBoolVar(f's2_{pos}')
-                        if search_surrounds == 2:
+                        if search_surrounds >= 2:
                             s3_var = model.NewBoolVar(f's3_{pos}')
                         
                         if search_surrounds == 2:
                             s2_placements[pos] = s2_var
-                            #s3_placements[pos] = s3_var
+                        if search_surrounds == 3:
+                            s2_placements[pos] = s2_var
+                            s3_placements[pos] = s3_var
                         if search_surrounds == 2:
                             for c in cells:
                                 cell_covered_by_s2[c].append(s2_var)
-                                #cell_covered_by_s3[c].append(s3_var)
+                        if search_surrounds == 3:
+                            for c in cells:
+                                cell_covered_by_s2[c].append(s2_var)
+                                cell_covered_by_s3[c].append(s3_var)
                         
                         if search_surrounds == 3:
                             model.Add(s2_var + s3_var <= 1)
@@ -406,7 +414,37 @@ def solve_monolithic():
     print(f"Generated {len(s1_placements)} potential tile positions for s1.")
     if search_surrounds == 2:
         print(f"Generated {len(s2_placements)} potential tile positions for s2.")
-        #print(f"Generated {len(s3_placements)} potential tile positions for s3.")
+    if search_surrounds == 3:
+        print(f"Generated {len(s2_placements)} potential tile positions for s2.")
+        print(f"Generated {len(s3_placements)} potential tile positions for s3.")
+
+    # --- Apply Hints from Previous Solution ---
+    if previous_solution:
+        print("Applying hints from previous solution...")
+        if 's1' in previous_solution:
+            for pos in previous_solution['s1']:
+                if pos in s1_placements:
+                    model.AddHint(s1_placements[pos], 1)
+        
+        if search_surrounds >= 2 and 's2' in previous_solution:
+            for pos in previous_solution['s2']:
+                if pos in s2_placements:
+                    model.AddHint(s2_placements[pos], 1)
+        
+        # Note: We don't usually hint s3 because it's the new layer we are searching for,
+        # but if we had a partial s3 solution we could hint it here too.
+
+    with open("heesch_solver_summary.log", "a") as f:
+        f.write("Testing Shape ")
+        if shape_index is not None:
+            f.write(f"{shape_index}\n")
+        f.write(f"Pyramids: {base_shape}\n")
+        f.write(f"Coronas: {search_surrounds}\n")
+        f.write(f"S1 positions: {len(s1_placements)}\n")
+        if search_surrounds >= 2:
+            f.write(f"S2 positions: {len(s2_placements)}\n")
+        if search_surrounds == 3:
+            f.write(f"S3 positions: {len(s3_placements)}\n")
     
 
     #5. Constraints
@@ -419,15 +457,18 @@ def solve_monolithic():
         s1_cov = cell_covered_by_s1[c]
         if search_surrounds == 2:
             s2_cov = cell_covered_by_s2[c]
-            #s3_cov = cell_covered_by_s3[c]
+        if search_surrounds == 3:
+            s2_cov = cell_covered_by_s2[c]
+            s3_cov = cell_covered_by_s3[c]
     #    
-        if search_surrounds == 2:
+        if search_surrounds == 2 or search_surrounds == 3:
             if s1_cov or s2_cov:
                 model.Add(sum(s1_cov) + sum(s2_cov) <= 1)
-                #if s1_cov or s3_cov:
-                #    model.Add(sum(s1_cov) + sum(s3_cov) <= 1)
-                #if s2_cov or s3_cov:
-                #    model.Add(sum(s2_cov) + sum(s3_cov) <= 1)
+            if search_surrounds == 3:
+                if s1_cov or s3_cov:
+                    model.Add(sum(s1_cov) + sum(s3_cov) <= 1)
+                if s2_cov or s3_cov:
+                    model.Add(sum(s2_cov) + sum(s3_cov) <= 1)
     print("Generated disjointness constraints.")
 
     # B. S1 Surrounds Center
@@ -439,13 +480,16 @@ def solve_monolithic():
                 model.Add(sum(cell_covered_by_s1[c]) == 1)
             else:
                 print(f"Warning: Center neighbor {c} cannot be covered by any tile.")
+                with open("heesch_solver_summary.log", "a") as f:
+                    f.write("Solver Status: INFEASIBLE (Trivial)\n")
+                    f.write(f"No solution found: Center neighbor {c} cannot be covered (Trivial INFEASIBLE).\n\n")
                 return
     print("Generated surrounds center constraints.")
 
     # C. S2 Surrounds S1
     # Logic: If any neighbor of cell c is covered by S1, then c must be covered by (S1 or S2).
     # This forces S2 to fill all gaps around S1.
-    if search_surrounds == 2:
+    if search_surrounds >= 2:
         for c in search_cells:
             if c in center_cells: continue
 
@@ -464,7 +508,7 @@ def solve_monolithic():
             # Optimization: Use Boolean Logic instead of Linear Arithmetic
             # Logic: If any neighbor is S1, then c must be covered by (S1 or S2).
             # Equivalent to: neighbor_is_s1 IMPLIES (c_is_s1 OR c_is_s2)
-            target_literals = cell_covered_by_s1[c] #+ cell_covered_by_s2[c]
+            target_literals = cell_covered_by_s1[c] + cell_covered_by_s2[c]
             for n_var in neighbor_s1_vars.values():
                 model.AddBoolOr([n_var.Not()] + target_literals)
         print("Generated S2 surrounds S1 constraints.")
@@ -486,7 +530,7 @@ def solve_monolithic():
             if not neighbor_s2_vars: continue
                 
             # Logic: If any neighbor is S2, then c must be covered by (S1 or S2 or S3).
-            target_literals = cell_covered_by_s1[c] #+ cell_covered_by_s2[c] #+ cell_covered_by_s3[c]
+            target_literals = cell_covered_by_s1[c] + cell_covered_by_s2[c] + cell_covered_by_s3[c]
             for n_var in neighbor_s2_vars.values():
                 model.AddBoolOr([n_var.Not()] + target_literals)
         print("Generated S3 surrounds S2 constraints.")
@@ -516,18 +560,19 @@ def solve_monolithic():
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print("Solution found!")
         s1_tiles = [p for p, v in s1_placements.items() if solver.Value(v)]
-        if search_surrounds == 2:
+        if search_surrounds >= 2:
             s2_tiles = [p for p, v in s2_placements.items() if solver.Value(v)]
-            #s3_tiles = [p for p, v in s3_placements.items() if solver.Value(v)]
+            if search_surrounds == 3:
+                s3_tiles = [p for p, v in s3_placements.items() if solver.Value(v)]
         
-        with open("all_solutions_heesch1_tile.txt", "w") as f:
+        with open("all_solutions_heesch1_tile.txt", "a") as f:
             f.write("--- Monolithic Solution ---\n")
             f.write("Corona 1:\n")
             for t in s1_tiles:
                 print(f"S1: {t}")
                 f.write(f"{t}\n")
             
-            if search_surrounds == 2:
+            if search_surrounds >= 2:
                 f.write("Corona 2:\n")
                 for t in s2_tiles:
                     print(f"S2: {t}")
@@ -538,15 +583,280 @@ def solve_monolithic():
                 for t in s3_tiles:
                     print(f"S3: {t}")
                     f.write(f"{t}\n")
+        
+        with open("heesch_solver_summary.log", "a") as f:
+            f.write(f"Solver Status: {solver.StatusName(status)}\n")
+            f.write("Solution Found:\n")
+            f.write(f"S1: {s1_tiles}\n")
+            if search_surrounds >= 2:
+                f.write(f"S2: {s2_tiles}\n")
+            if search_surrounds == 3:
+                f.write(f"S3: {s3_tiles}\n")
+            f.write("\n")
+        
+        # Return the solution dictionary for the next iteration
+        solution_data = {'s1': s1_tiles}
+        if search_surrounds >= 2:
+            solution_data['s2'] = s2_tiles
+        if search_surrounds == 3:
+            solution_data['s3'] = s3_tiles
+        return solution_data
+
     elif status == cp_model.INFEASIBLE:
         print("No solution found: INFEASIBLE. The solver proved no solution exists within the constraints.")
+        with open("heesch_solver_summary.log", "a") as f:
+            f.write(f"Solver Status: {solver.StatusName(status)}\n")
+            f.write("No solution found: INFEASIBLE\n\n")
+        return None
     elif status == cp_model.UNKNOWN:
         print("No solution found: UNKNOWN. The solver reached the time limit (timeout) without finding a solution.")
+        with open("heesch_solver_summary.log", "a") as f:
+            f.write(f"Solver Status: {solver.StatusName(status)}\n")
+            f.write("No solution found: UNKNOWN (Timeout)\n\n")
+        return None
     else:
         print(f"No solution found. Status: {status}")
+        with open("heesch_solver_summary.log", "a") as f:
+            f.write(f"Solver Status: {solver.StatusName(status)}\n")
+            f.write(f"No solution found. Status: {status}\n\n")
+        return None
+
+def add_int3(a, b):
+    return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
+
+def sub_int3(a, b):
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+def get_face_neighbor_candidates(p):
+    # Returns list of (x, y, z, pyr)
+    candidates = []
+    x, y, z, pyr = p
+    
+    if pyr == 0:
+        # 2, 3, 4, 5, x+1: 1
+        candidates.append((x, y, z, 2))
+        candidates.append((x, y, z, 3))
+        candidates.append((x, y, z, 4))
+        candidates.append((x, y, z, 5))
+        candidates.append((x + 1, y, z, 1))
+    elif pyr == 1:
+        # 2, 3, 4, 5, x-1: 0
+        candidates.append((x, y, z, 2))
+        candidates.append((x, y, z, 3))
+        candidates.append((x, y, z, 4))
+        candidates.append((x, y, z, 5))
+        candidates.append((x - 1, y, z, 0))
+    elif pyr == 2:
+        # 0, 1, 4, 5, y+1: 3
+        candidates.append((x, y, z, 0))
+        candidates.append((x, y, z, 1))
+        candidates.append((x, y, z, 4))
+        candidates.append((x, y, z, 5))
+        candidates.append((x, y + 1, z, 3))
+    elif pyr == 3:
+        # 0, 1, 4, 5, y-1: 2
+        candidates.append((x, y, z, 0))
+        candidates.append((x, y, z, 1))
+        candidates.append((x, y, z, 4))
+        candidates.append((x, y, z, 5))
+        candidates.append((x, y - 1, z, 2))
+    elif pyr == 4:
+        # 0, 1, 2, 3, z+1: 5
+        candidates.append((x, y, z, 0))
+        candidates.append((x, y, z, 1))
+        candidates.append((x, y, z, 2))
+        candidates.append((x, y, z, 3))
+        candidates.append((x, y, z + 1, 5))
+    elif pyr == 5:
+        # 0, 1, 2, 3, z-1: 4
+        candidates.append((x, y, z, 0))
+        candidates.append((x, y, z, 1))
+        candidates.append((x, y, z, 2))
+        candidates.append((x, y, z, 3))
+        candidates.append((x, y, z - 1, 4))
+        
+    return candidates
+
+def transform_pyramids(pyramids, start_p, end_p):
+    diff = sub_int3((end_p[0], end_p[1], end_p[2]), (start_p[0], start_p[1], start_p[2]))
+    from_pyr = start_p[3]
+    to_pyr = end_p[3]
+    from_pos = (start_p[0], start_p[1], start_p[2])
+    
+    rotated_pyramids = []
+    
+    # Logic from C# transformPyramids switch
+    if from_pyr == 0:
+        if to_pyr == 0: rotated_pyramids = list(pyramids)
+        elif to_pyr == 1: rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 1, True, from_pos), 1, True, from_pos)
+        elif to_pyr == 2: rotated_pyramids = rotatePyramids(pyramids, 2, False, from_pos)
+        elif to_pyr == 3: rotated_pyramids = rotatePyramids(pyramids, 2, True, from_pos)
+        elif to_pyr == 4: rotated_pyramids = rotatePyramids(pyramids, 1, True, from_pos)
+        elif to_pyr == 5: rotated_pyramids = rotatePyramids(pyramids, 1, False, from_pos)
+    elif from_pyr == 1:
+        if to_pyr == 0: rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 1, True, from_pos), 1, True, from_pos)
+        elif to_pyr == 1: rotated_pyramids = list(pyramids)
+        elif to_pyr == 2: rotated_pyramids = rotatePyramids(pyramids, 2, True, from_pos)
+        elif to_pyr == 3: rotated_pyramids = rotatePyramids(pyramids, 2, False, from_pos)
+        elif to_pyr == 4: rotated_pyramids = rotatePyramids(pyramids, 1, False, from_pos)
+        elif to_pyr == 5: rotated_pyramids = rotatePyramids(pyramids, 1, True, from_pos)
+    elif from_pyr == 2:
+        if to_pyr == 0: rotated_pyramids = rotatePyramids(pyramids, 2, True, from_pos)
+        elif to_pyr == 1: rotated_pyramids = rotatePyramids(pyramids, 2, False, from_pos)
+        elif to_pyr == 2: rotated_pyramids = list(pyramids)
+        elif to_pyr == 3: rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 0, True, from_pos), 0, True, from_pos)
+        elif to_pyr == 4: rotated_pyramids = rotatePyramids(pyramids, 0, False, from_pos)
+        elif to_pyr == 5: rotated_pyramids = rotatePyramids(pyramids, 0, True, from_pos)
+    elif from_pyr == 3:
+        if to_pyr == 0: rotated_pyramids = rotatePyramids(pyramids, 2, False, from_pos)
+        elif to_pyr == 1: rotated_pyramids = rotatePyramids(pyramids, 2, True, from_pos)
+        elif to_pyr == 2: rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 2, True, from_pos), 2, True, from_pos)
+        elif to_pyr == 3: rotated_pyramids = list(pyramids)
+        elif to_pyr == 4: rotated_pyramids = rotatePyramids(pyramids, 0, True, from_pos)
+        elif to_pyr == 5: rotated_pyramids = rotatePyramids(pyramids, 0, False, from_pos)
+    elif from_pyr == 4:
+        if to_pyr == 0: rotated_pyramids = rotatePyramids(pyramids, 1, False, from_pos)
+        elif to_pyr == 1: rotated_pyramids = rotatePyramids(pyramids, 1, True, from_pos)
+        elif to_pyr == 2: rotated_pyramids = rotatePyramids(pyramids, 0, True, from_pos)
+        elif to_pyr == 3: rotated_pyramids = rotatePyramids(pyramids, 0, False, from_pos)
+        elif to_pyr == 4: rotated_pyramids = list(pyramids) # C# code had a comment about error/test here, but loop used original pyramids
+        elif to_pyr == 5: rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 1, True, from_pos), 1, True, from_pos)
+    elif from_pyr == 5:
+        if to_pyr == 0: rotated_pyramids = rotatePyramids(pyramids, 1, True, from_pos)
+        elif to_pyr == 1: rotated_pyramids = rotatePyramids(pyramids, 1, False, from_pos)
+        elif to_pyr == 2: rotated_pyramids = rotatePyramids(pyramids, 0, False, from_pos)
+        elif to_pyr == 3: rotated_pyramids = rotatePyramids(pyramids, 0, True, from_pos)
+        elif to_pyr == 4: rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 0, True, from_pos), 0, True, from_pos)
+        elif to_pyr == 5: rotated_pyramids = list(pyramids)
+
+    transformed = []
+    for p in rotated_pyramids:
+        new_pos = add_int3((p[0], p[1], p[2]), diff)
+        transformed.append((new_pos[0], new_pos[1], new_pos[2], p[3]))
+    return transformed
+
+class GenNode:
+    def __init__(self, placement, existing_pyramids=None):
+        self.placement = placement
+        if existing_pyramids:
+            self.pyramids = list(existing_pyramids)
+            if placement not in self.pyramids:
+                self.pyramids.append(placement)
+        else:
+            self.pyramids = [placement]
+        self.face_neighbors = []
+
+    def calculate_face_neighbors(self):
+        candidates = []
+        for p in self.pyramids:
+            candidates.extend(get_face_neighbor_candidates(p))
+        
+        self.face_neighbors = []
+        pyr_set = set(self.pyramids)
+        seen_candidates = set()
+        
+        for f in candidates:
+            if f not in pyr_set and f not in seen_candidates:
+                self.face_neighbors.append(f)
+                seen_candidates.add(f)
+
+    def detect_holes(self):
+        pyr_set = set(self.pyramids)
+        for f in self.face_neighbors:
+            surround = get_face_neighbor_candidates(f)
+            # Check if ALL surround are in pyr_set
+            is_hole = True
+            for s in surround:
+                if s not in pyr_set:
+                    is_hole = False
+                    break
+            if is_hole:
+                return True
+        return False
+
+def cluster_is_new(nodes_to_compare, new_pyramids):
+    # Test if new cluster is rotation of previous cluster
+    for node_to_compare in nodes_to_compare:
+        if len(node_to_compare.pyramids) != len(new_pyramids):
+            print("ERROR different count!!!")
+            continue
+            
+        # Try to map every pyramid in new_pyramids to the first pyramid of node_to_compare
+        anchor = node_to_compare.pyramids[0]
+        anchor_pos = (anchor[0], anchor[1], anchor[2])
+        
+        for t in new_pyramids:
+            transformed_new = transform_pyramids(new_pyramids, t, anchor)
+            
+            # 4 rotations around pyramid axis
+            axis = 0
+            if anchor[3] == 0 or anchor[3] == 1: axis = 0
+            elif anchor[3] == 2 or anchor[3] == 3: axis = 1
+            elif anchor[3] == 4 or anchor[3] == 5: axis = 2
+            
+            for r in range(4):
+                check_pyramids = transformed_new
+                if r == 1:
+                    check_pyramids = rotatePyramids(transformed_new, axis, True, anchor_pos)
+                elif r == 2:
+                    check_pyramids = rotatePyramids(rotatePyramids(transformed_new, axis, True, anchor_pos), axis, True, anchor_pos)
+                elif r == 3:
+                    check_pyramids = rotatePyramids(transformed_new, axis, False, anchor_pos)
+                
+                # Check equality
+                difference = False
+                compare_set = set(node_to_compare.pyramids)
+                for pt in check_pyramids:
+                    if pt not in compare_set:
+                        difference = True
+                        break
+                
+                if not difference:
+                    return False # Found a match, so it is NOT new
+                    
+    return True
+
+def generate_polypyramids(n):
+    """Generates poly-pyramids of size n using BFS."""
+    print(f"Generating poly-pyramids of size {n}...")
+    nodes = []
+    
+    # Layer 0 (Size 1)
+    layer0 = []
+    root = GenNode((0,0,0,0))
+    root.calculate_face_neighbors()
+    layer0.append(root)
+    nodes.append(layer0)
+    
+    # Generate layers up to n-1 (Size n)
+    for layer in range(1, n):
+        current_layer_nodes = []
+        prev_layer_nodes = nodes[layer-1]
+        
+        for node in prev_layer_nodes:
+            for p in node.face_neighbors:
+                new_pyramids = list(node.pyramids)
+                new_pyramids.append(p)
+                
+                if not current_layer_nodes:
+                    new_node = GenNode(p, node.pyramids)
+                    new_node.calculate_face_neighbors()
+                    current_layer_nodes.append(new_node)
+                else:
+                    if cluster_is_new(current_layer_nodes, new_pyramids):
+                        new_node = GenNode(p, node.pyramids)
+                        new_node.calculate_face_neighbors()
+                        if not new_node.detect_holes():
+                            current_layer_nodes.append(new_node)
+                            
+        nodes.append(current_layer_nodes)
+        print(f"Layer {layer} (Size {layer+1}) generated {len(current_layer_nodes)} shapes.")
+        
+    return [n.pyramids for n in nodes[n-1]]
 
 if __name__ == '__main__':
     # Redirect stdout and stderr to a file while keeping console output
+    #log_file = open("/content/drive/MyDrive/ColabNotebooks/heesch_solver.log", "w")
     log_file = open("heesch_solver.log", "w")
     class Tee:
         def __init__(self, *files):
@@ -560,4 +870,22 @@ if __name__ == '__main__':
                 f.flush()
     sys.stdout = Tee(sys.stdout, log_file)
     sys.stderr = sys.stdout
-    solve_monolithic()
+    
+    #with open("/content/drive/MyDrive/ColabNotebooks/heesch_solver_summary.log", "w") as f:
+    with open("heesch_solver_summary.log", "w") as f:
+        f.write("--- Heesch Solver Summary ---\n")
+    
+    shape_index = 0
+    for nrPyramidsInShape in range(5, 7):
+        shapes = generate_polypyramids(nrPyramidsInShape)
+        for shape in shapes:
+            print(f"Checking shape {shape_index}...")
+            search_surrounds = 1
+            solution = solve_monolithic(search_surrounds, shape, shape_index=shape_index)
+            if solution:
+                search_surrounds += 1
+                solution = solve_monolithic(search_surrounds, shape, previous_solution=solution, shape_index=shape_index)
+                if solution:
+                    search_surrounds += 1
+                    solve_monolithic(search_surrounds, shape, previous_solution=solution, shape_index=shape_index)
+            shape_index += 1
