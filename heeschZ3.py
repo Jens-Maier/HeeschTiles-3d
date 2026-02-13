@@ -357,7 +357,71 @@ def solve_monolithic(search_surrounds, base_shape, previous_solution=None, shape
 
     # --- Step 1: Generate all valid geometries in search space ---
     valid_geometries = []
-    tile_origin_radius = 5
+    tile_origin_radius = 3
+
+    def check_radius_sufficiency(corona_n, previous_corona_cells, current_placements, cell_covered_by_current, current_occupied_cells=None):
+        nonlocal tile_origin_radius
+        MAX_RADIUS = 10
+        
+        while True:
+            test_radius = tile_origin_radius + 1
+            if test_radius > MAX_RADIUS:
+                print(f"Corona {corona_n}: Hit upper radius bound {MAX_RADIUS}")
+                break
+                
+            failed = False
+            prev_boundary = calculate_all_neighbor_pyramids(previous_corona_cells)
+            
+            new_layer_tiles = []
+            
+            # Generate all tiles at test_radius
+            for x in range(-test_radius, test_radius + 1):
+                for y in range(-test_radius, test_radius + 1):
+                    for z in range(-test_radius, test_radius + 1):
+                        if max(abs(x), abs(y), abs(z)) != test_radius:
+                            continue
+                        
+                        for rot in range(24):
+                            pos = (x, y, z, rot)
+                            cells = generateTilePyramids(*pos, base_shape)
+                            
+                            if any(c in center_cells for c in cells):
+                                continue
+
+                            new_layer_tiles.append((pos, cells))
+                            
+                            if any(c in prev_boundary for c in cells):
+                                failed = True
+
+            if failed:
+                print(f"Corona {corona_n}: Radius {tile_origin_radius} insufficient. Expanding to {test_radius}...")
+                with open("heesch_solver_summary.log", "a") as f:
+                    f.write(f"Corona {corona_n}: Radius {tile_origin_radius} insufficient. Expanding to {test_radius}...\n")
+                tile_origin_radius = test_radius
+                
+                for pos, cells in new_layer_tiles:
+                    valid_geometries.append((pos, cells))
+                    for c in cells:
+                        search_cells.add(c)
+                    
+                    if any(c in prev_boundary for c in cells):
+                        var = model.NewBoolVar(f's{corona_n}_{pos}')
+                        current_placements[pos] = var
+                        for c in cells:
+                            cell_covered_by_current[c].append(var)
+                        if current_occupied_cells is not None:
+                            current_occupied_cells.update(cells)
+                
+                for c in search_cells:
+                    ns = calculate_all_neighbor_pyramids({c})
+                    valid_ns = [n for n in ns if n in search_cells]
+                    cell_neighbors[c] = valid_ns
+            else:
+                print(f"Corona {corona_n}: Radius {tile_origin_radius} sufficient.")
+                with open("heesch_solver_summary.log", "a") as f:
+                    f.write(f"corona {corona_n}: tile positions test passed at radius {tile_origin_radius}\n")
+                break
+
     for x in range(-tile_origin_radius, tile_origin_radius + 1):
         for y in range(-tile_origin_radius, tile_origin_radius + 1):
             for z in range(-tile_origin_radius, tile_origin_radius + 1):
@@ -392,6 +456,7 @@ def solve_monolithic(search_surrounds, base_shape, previous_solution=None, shape
             cell_covered_by_s1[c].append(s1_var)
             
     print(f"Generated {len(s1_placements)} potential tile positions for s1.")
+    check_radius_sufficiency(1, center_cells, s1_placements, cell_covered_by_s1, s1_occupied_cells)
 
     # --- Step 3: Identify S2 Candidates ---
     if search_surrounds >= 2:
@@ -416,6 +481,7 @@ def solve_monolithic(search_surrounds, base_shape, previous_solution=None, shape
                 cell_covered_by_s2[c].append(s2_var)
         
         print(f"Generated {len(s2_placements)} potential tile positions for s2.")
+        check_radius_sufficiency(2, s1_occupied_cells, s2_placements, cell_covered_by_s2, s2_occupied_cells)
 
     # --- Step 4: Identify S3 Candidates ---
     if search_surrounds == 3:
@@ -441,6 +507,7 @@ def solve_monolithic(search_surrounds, base_shape, previous_solution=None, shape
                 model.Add(s2_placements[pos] + s3_var <= 1)
                 
         print(f"Generated {len(s3_placements)} potential tile positions for s3.")
+        check_radius_sufficiency(3, s2_occupied_cells, s3_placements, cell_covered_by_s3)
 
     # --- Apply Hints from Previous Solution ---
     if previous_solution:
