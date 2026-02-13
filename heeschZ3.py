@@ -553,7 +553,7 @@ def solve_monolithic(search_surrounds, base_shape, previous_solution=None, shape
         if search_surrounds == 3:
             s2_cov = cell_covered_by_s2[c]
             s3_cov = cell_covered_by_s3[c]
-    #    
+    
         if search_surrounds == 2 or search_surrounds == 3:
             if s1_cov or s2_cov:
                 model.Add(sum(s1_cov) + sum(s2_cov) <= 1)
@@ -634,7 +634,7 @@ def solve_monolithic(search_surrounds, base_shape, previous_solution=None, shape
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 8
     solver.parameters.max_time_in_seconds = 3600
-    solver.parameters.log_search_progress = True
+    solver.parameters.log_search_progress = False
     
     print(f"Solving monolithic model for {search_surrounds} corona(s)...")
     status = solver.Solve(model)
@@ -987,12 +987,13 @@ if __name__ == '__main__':
 
     # --- re-test specific tile ---
     shape_index = 0
+    found = False
     for nrPyramidsInShape in range(3, 7):
+        if found: break
         shapes = generate_polypyramids(nrPyramidsInShape)
         for shape in shapes:
-            if shape_index == 36:
+            if shape_index == 14:
                 print(f"shapes count: {len(shapes)}")
-                shape = shapes[shape_index]
                 print(f"re-testing shape {shape_index}...")
                 for p in shape:
                     print(p)
@@ -1004,7 +1005,8 @@ if __name__ == '__main__':
                     if solution:
                         search_surrounds += 1
                         solve_monolithic(search_surrounds, shape, previous_solution=solution, shape_index=shape_index)
-    
+                
+                found = True
                 break 
             shape_index += 1
     
