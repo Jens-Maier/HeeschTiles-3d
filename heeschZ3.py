@@ -400,10 +400,12 @@ def solve_monolithic(search_surrounds, base_shape, previous_solution=None, shape
                 tile_origin_radius = test_radius
                 
                 for pos, cells in new_layer_tiles:
+                    # 1. ALWAYS add to the global search space (for future coronas)
                     valid_geometries.append((pos, cells))
                     for c in cells:
                         search_cells.add(c)
                     
+                    # 2. ONLY add to current corona if it touches the previous corona
                     if any(c in prev_boundary for c in cells):
                         var = model.NewBoolVar(f's{corona_n}_{pos}')
                         current_placements[pos] = var
@@ -966,17 +968,44 @@ if __name__ == '__main__':
     with open("heesch_solver_summary.log", "w") as f:
         f.write("--- Heesch Solver Summary ---\n")
     
+    # --- find all solutions ---
+    #shape_index = 0
+    #for nrPyramidsInShape in range(3, 7):
+    #    shapes = generate_polypyramids(nrPyramidsInShape)
+    #    for shape in shapes:
+    #        print(f"Checking shape {shape_index}...")
+    #        search_surrounds = 1
+    #        solution = solve_monolithic(search_surrounds, shape, shape_index=shape_index)
+    #        if solution:
+    #            search_surrounds += 1
+    #            solution = solve_monolithic(search_surrounds, shape, previous_solution=solution, #shape_index=shape_index)
+    #            if solution:
+    #                search_surrounds += 1
+    #                solve_monolithic(search_surrounds, shape, previous_solution=solution, shape_index=shape_index)
+    #        shape_index += 1
+
+
+    # --- re-test specific tile ---
     shape_index = 0
-    for nrPyramidsInShape in range(5, 7):
+    for nrPyramidsInShape in range(3, 7):
         shapes = generate_polypyramids(nrPyramidsInShape)
         for shape in shapes:
-            print(f"Checking shape {shape_index}...")
-            search_surrounds = 1
-            solution = solve_monolithic(search_surrounds, shape, shape_index=shape_index)
-            if solution:
-                search_surrounds += 1
-                solution = solve_monolithic(search_surrounds, shape, previous_solution=solution, shape_index=shape_index)
+            if shape_index == 36:
+                print(f"shapes count: {len(shapes)}")
+                shape = shapes[shape_index]
+                print(f"re-testing shape {shape_index}...")
+                for p in shape:
+                    print(p)
+                search_surrounds = 1
+                solution = solve_monolithic(search_surrounds, shape, shape_index=shape_index)
                 if solution:
                     search_surrounds += 1
-                    solve_monolithic(search_surrounds, shape, previous_solution=solution, shape_index=shape_index)
+                    solution = solve_monolithic(search_surrounds, shape, previous_solution=solution, shape_index=shape_index)
+                    if solution:
+                        search_surrounds += 1
+                        solve_monolithic(search_surrounds, shape, previous_solution=solution, shape_index=shape_index)
+    
+                break 
             shape_index += 1
+    
+    
