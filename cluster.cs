@@ -334,99 +334,174 @@ namespace surroundNamespace
             surroundMesh = new Mesh();
 
 
+            // TEST
+            (int, int, int, int)[] testPyrs = {
+            (0, -1, -1, 0),
+            (0, -1, -1, 2),
+            (0, -1, -1, 4),
+            (0, -1, 0, 0),
+            (0, -1, 0, 2),
+            (0, -1, 0, 4),
+            (0, -1, 0, 5),
+            (0, -1, 1, 0),
+            (0, -1, 1, 2),
+            (0, -1, 1, 5),
+            (0, 0, -1, 0),
+            (0, 0, -1, 2),
+            (0, 0, -1, 3),
+            (0, 0, -1, 4),
+            (0, 0, 0, 1),
+            (0, 0, 0, 2),
+            (0, 0, 0, 3),
+            (0, 0, 0, 4),
+            (0, 0, 0, 5),
+            (0, 0, 1, 0),
+            (0, 0, 1, 2),
+            (0, 0, 1, 3),
+            (0, 0, 1, 5),
+            (0, 1, -1, 0),
+            (0, 1, -1, 3),
+            (0, 1, -1, 4),
+            (0, 1, 0, 0),
+            (0, 1, 0, 3),
+            (0, 1, 0, 4),
+            (0, 1, 0, 5),
+            (0, 1, 1, 0),
+            (0, 1, 1, 3),
+            (0, 1, 1, 5),
+            (1, -1, -1, 1),
+            (1, -1, -1, 2),
+            (1, -1, -1, 4),
+            (1, -1, 0, 1),
+            (1, -1, 0, 2),
+            (1, -1, 0, 4),
+            (1, -1, 0, 5),
+            (1, -1, 1, 1),
+            (1, -1, 1, 2),
+            (1, -1, 1, 5),
+            (1, 0, -1, 1),
+            (1, 0, -1, 2),
+            (1, 0, -1, 3),
+            (1, 0, -1, 4),
+            (1, 0, 0, 1),
+            (1, 0, 0, 2),
+            (1, 0, 0, 3),
+            (1, 0, 0, 4),
+            (1, 0, 0, 5),
+            (1, 0, 1, 1),
+            (1, 0, 1, 2),
+            (1, 0, 1, 3),
+            (1, 0, 1, 5),
+            (1, 1, -1, 1),
+            (1, 1, -1, 3),
+            (1, 1, -1, 4),
+            (1, 1, 0, 1),
+            (1, 1, 0, 3),
+            (1, 1, 0, 4),
+            (1, 1, 0, 5),
+            (1, 1, 1, 1),
+            (1, 1, 1, 3),
+            (1, 1, 1, 5)};
+
+            foreach (var p in testPyrs)
+            {
+                pyramids.Add(new pyramidCoord(new int3(p.Item1, p.Item2, p.Item3), p.Item4));
+            }
+
+
             // setup ----------
 
             // root tile
-            pyramids.Clear();
-            rootTile = new tile(new int3(0, 0, 0), 0, this);
-
-            getAllPyramids();
+            // pyramids.Clear();
+            // rootTile = new tile(new int3(0, 0, 0), 0, this);
+// 
+            // getAllPyramids();
             generateMesh();
             mesh.SetVertices(vertices);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateNormals();
             meshFilter.mesh = mesh;
-
-            // surround
-            calculateAllNeighborPyramids(pyramids);
-            surroundNodes = new node[pyramidSurround.Count];
-            activeNodeIndex = -1;
-
-
-            //Debug.Log("pyramids count : " + pyramids.Count); // 19 OK
-            clusterMatchingRules = generateClusterMatchingRules(pyramids);
-
-            neighborTilePositionsWithNrFacesTouchingRootTileAndOverlap = calculateAllNeighborTilePositions(pyramids);
+// 
+            // // surround
+            // calculateAllNeighborPyramids(pyramids);
+            // surroundNodes = new node[pyramidSurround.Count];
+            // activeNodeIndex = -1;
+// 
+// 
+            // //Debug.Log("pyramids count : " + pyramids.Count); // 19 OK
+            // clusterMatchingRules = generateClusterMatchingRules(pyramids);
+// 
+            // neighborTilePositionsWithNrFacesTouchingRootTileAndOverlap = calculateAllNeighborTilePositions(pyramids);
 
 
         }
 
         // Update is called once per frame
-        void Update()
-        {
-            // add single tile OK
-            //Debug.Log(" total neighbor tile positions count: " + neighborTilePositionsWithNrFacesTouchingRootTile.Count);
-
-            // test surround
-            //
-            //surroundRootNode = new node(neighborTilePositionsWithNrFacesTouchingRootTile[test].Item1);
-            //surroundRootNode.currentPyramids = generateSingleTilePyramidCoords(surroundRootNode.placement.pos, surroundRootNode.placement.rot);
-            //activeNode = surroundRootNode;
-
-            tilingStep();
-
-            debgLstRed.Clear();
-            debgLstGreen.Clear();
-            debgLstBlue.Clear();
-
-
-
-
-            debgPyramidsRed2.Clear();
-            debgPyramidsGreen2.Clear();
-            debgPyramidsBlue2.Clear();
-
-
-            // for test:
-            // neighborTilePositionsWithNrFacesTouchingRootTile = calculateAllNeighborTilePositions(pyramids);
-            //
-
-            // FUNKT !!!
-            //
-            // posRot testPos = new posRot(new int3(testPosX, testPosY, testPosZ), testRot);
-            // bool fits = tileFitsToCluster(pyramids, testPos);
-            // Debug.Log("tile fits: " + fits);
-            // 
-            // tileFits = fits;
-
-            // draw test tile  ----------------------
-            //
-            // tileFits = false;
-            // foreach (possibleTilePosition n in neighborTilePositionsWithNrFacesTouchingRootTileAndOverlap)
-            // {
-            //     if (int3equal(n.posrot.pos, new int3(testPosX, testPosY, testPosZ)) == true && n.posrot.rot == testRot)
-            //     {
-            //         tileFits = true;
-            //         testNrFacesTouchRootTile = n.nrFacesTouch;
-            //         testOverlap = n.overlap;
-            // 
-            //         node newNode = new node(new posRot(n.posrot.pos, n.posrot.rot));
-            //         List<pyramidCoord> testPyramids = generateSingleTilePyramidCoords(n.posrot.pos, n.posrot.rot);
-            // 
-            //         newNode.currentPyramids = testPyramids;
-            //         node temp = activeNode;
-            //         activeNode.next = newNode;
-            //         activeNode = newNode;
-            // 
-            //         generateSurroundMesh();
-            // 
-            // 
-            //         activeNode = temp;
-            //     }
-            // }
-
-
-        }
+        //void Update()
+        //{
+        //    // add single tile OK
+        //    //Debug.Log(" total neighbor tile positions count: " + //neighborTilePositionsWithNrFacesTouchingRootTile.Count);
+//
+        //    // test surround
+        //    //
+        //    //surroundRootNode = new node(neighborTilePositionsWithNrFacesTouchingRootTile[test].Item1);
+        //    //surroundRootNode.currentPyramids = generateSingleTilePyramidCoords(surroundRootNode.placement.pos, //surroundRootNode.placement.rot);
+        //    //activeNode = surroundRootNode;
+//
+        //    tilingStep();
+//
+        //    debgLstRed.Clear();
+        //    debgLstGreen.Clear();
+        //    debgLstBlue.Clear();
+//
+//
+//
+//
+        //    debgPyramidsRed2.Clear();
+        //    debgPyramidsGreen2.Clear();
+        //    debgPyramidsBlue2.Clear();
+//
+//
+        //    // for test:
+        //    // neighborTilePositionsWithNrFacesTouchingRootTile = calculateAllNeighborTilePositions(pyramids);
+        //    //
+//
+        //    // FUNKT !!!
+        //    //
+        //    // posRot testPos = new posRot(new int3(testPosX, testPosY, testPosZ), testRot);
+        //    // bool fits = tileFitsToCluster(pyramids, testPos);
+        //    // Debug.Log("tile fits: " + fits);
+        //    // 
+        //    // tileFits = fits;
+//
+        //    // draw test tile  ----------------------
+        //    //
+        //    // tileFits = false;
+        //    // foreach (possibleTilePosition n in neighborTilePositionsWithNrFacesTouchingRootTileAndOverlap)
+        //    // {
+        //    //     if (int3equal(n.posrot.pos, new int3(testPosX, testPosY, testPosZ)) == true && n.posrot.rot == //testRot)
+        //    //     {
+        //    //         tileFits = true;
+        //    //         testNrFacesTouchRootTile = n.nrFacesTouch;
+        //    //         testOverlap = n.overlap;
+        //    // 
+        //    //         node newNode = new node(new posRot(n.posrot.pos, n.posrot.rot));
+        //    //         List<pyramidCoord> testPyramids = generateSingleTilePyramidCoords(n.posrot.pos, n.posrot.//rot);
+        //    // 
+        //    //         newNode.currentPyramids = testPyramids;
+        //    //         node temp = activeNode;
+        //    //         activeNode.next = newNode;
+        //    //         activeNode = newNode;
+        //    // 
+        //    //         generateSurroundMesh();
+        //    // 
+        //    // 
+        //    //         activeNode = temp;
+        //    //     }
+        //    // }
+//
+//
+        //}
 
         public (bool, bool) tileFitsToCluster(HashSet<pyramidCoord> cluster, posRot newTilePos, List<matchingRule> clustMatchingRules)
         {
@@ -2425,6 +2500,8 @@ namespace surroundNamespace
                     }
                 }
             }
+            Debug.Log("Nr neighbor cubes: " + neighborCubes.Count);
+            Debug.Log("Nr possible tile positions: " + newNeighborTilePositions.Count);
 
             for (int i = 0; i < 10; i++)
             {
