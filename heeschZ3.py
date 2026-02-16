@@ -535,8 +535,8 @@ def get_orientation_from_steps(steps):
     
     return CANONICAL_BASES.get((x_vec, y_vec), -1)
 
-def calculate_all_neighbor_tile_positions(surroundPyramids, tilePyramids):
-    neighborTilePositions = []
+def calculate_all_neighbor_tile_positions(surroundPyramids, tilePyramids, forbiddenPyramids=None):
+    neighborTilePositions = set()
 
     # Ensure canonical bases are initialized
     init_canonical_bases()
@@ -557,7 +557,7 @@ def calculate_all_neighbor_tile_positions(surroundPyramids, tilePyramids):
             # Calculate the position of the new tile (relative to 0,0,0)
             # diff was calculated in transform_pyramids as end_p - start_p
             # Since start_p is from the tile at origin, diff is the new center.
-            diff = sub_int3((p[0], p[1], p[2]), (t[0], t[1], t[2]))
+            # diff = sub_int3((p[0], p[1], p[2]), (t[0], t[1], t[2]))
             
             for rot in range(4):
                 # Create a copy of steps for this specific rotation
@@ -578,13 +578,24 @@ def calculate_all_neighbor_tile_positions(surroundPyramids, tilePyramids):
                     current_steps.append((axis, False, None))
 
                 # Check if this placement overlaps with the original tile
-                if not any(tp in tilePyramids for tp in rotatedPyramids):
-                    # Calculate orientation index
-                    orientation = get_orientation_from_steps(current_steps)
-                    # Append (Position, Orientation)
-                    # Position is (x, y, z), Orientation is int 0-23
-                    neighborTilePositions.append((diff, orientation))
-    return neighborTilePositions
+                if any(tp in tilePyramids for tp in rotatedPyramids):
+                    continue
+
+                if forbiddenPyramids and any(tp in forbiddenPyramids for tp in rotatedPyramids):
+                    continue
+
+
+                # Calculate orientation index
+                orientation = get_orientation_from_steps(current_steps)
+                
+                ref_shape = create_rotated_pyramid_coords(orientation, tilePyramids, (0,0,0))
+                real_pos = sub_int3(rotatedPyramids[0], ref_shape[0])
+
+                # Append (Position, Orientation)
+                # Position is (x, y, z), Orientation is int 0-23
+                neighborTilePositions.add((real_pos, orientation))
+
+    return list(neighborTilePositions)
     
 def create_rotated_pyramid_coords(r, temp_pyramid_coords, center):
     
@@ -698,10 +709,251 @@ def generate_polypyramids(n):
         
     return [n.pyramids for n in nodes[n-1]]
 
+def get_transformed_pyramids(base_shape, position, orientation):
+    rotated = create_rotated_pyramid_coords(orientation, base_shape, (0,0,0))
+    transformed = []
+    for px, py, pz, pyr in rotated:
+        transformed.append((px + position[0], py + position[1], pz + position[2], pyr))
+    return transformed
+
+def solve_monolithic(shape_index, search_surrounds, base_shape, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, previous_solution=None):
+    
+    model = cp_model.CpModel()
+
+    # 1. Setup Grid and Center
+    center_cells = set(base_shape)
+
+    center_neighbors_set = calculate_all_neighbor_pyramids(center_cells)
+    
+    # 2. Generate Tile Variables
+    s1_placements = {}
+    s2_placements = {}
+    s3_placements = {}
+
+    cell_covered_by_s1 = defaultdict(list)
+    cell_covered_by_s2 = defaultdict(list)
+    cell_covered_by_s3 = defaultdict(list)
+    
+    # Create S1 variables
+    for (pos, rot) in neighborTilePositionsS1:
+        cells = get_transformed_pyramids(base_shape, pos, rot)
+        s1_var = model.NewBoolVar(f's1_{pos}_{rot}')
+        s1_placements[(pos, rot)] = s1_var
+        for c in cells:
+            cell_covered_by_s1[c].append(s1_var)
+
+    if search_surrounds >= 2:
+        # Create S2 variables
+        for (pos, rot) in neighborTilePositionsS2:
+            cells = get_transformed_pyramids(base_shape, pos, rot)
+            s2_var = model.NewBoolVar(f's2_{pos}_{rot}')
+            s2_placements[(pos, rot)] = s2_var
+            for c in cells:
+                cell_covered_by_s2[c].append(s2_var)
+    
+    if search_surrounds >= 3:
+        # Create S3 variables
+        for (pos, rot) in neighborTilePositionsS3:
+            cells = get_transformed_pyramids(base_shape, pos, rot)
+            s3_var = model.NewBoolVar(f's3_{pos}_{rot}')
+            s3_placements[(pos, rot)] = s3_var
+            for c in cells:
+                cell_covered_by_s3[c].append(s3_var)
+
+    
+
+
+    
+
+    # --- Apply Hints from Previous Solution ---
+    if previous_solution:
+        print("Applying hints from previous solution...")
+        if 's1' in previous_solution:
+            for placement_key in previous_solution['s1']:
+                if placement_key in s1_placements:
+                    model.AddHint(s1_placements[placement_key], 1)
+        
+        if search_surrounds >= 2 and 's2' in previous_solution:
+            for placement_key in previous_solution['s2']:
+                if placement_key in s2_placements:
+                    model.AddHint(s2_placements[placement_key], 1)
+
+
+    print("Testing Shape ", end="")
+    if shape_index is not None:
+        print(f"{shape_index}")
+    else:
+        print("")
+    print(f"Pyramids: {base_shape}")
+    print(f"Coronas: {search_surrounds}")
+    print(f"S1 positions: {len(s1_placements)}")
+    if search_surrounds >= 2:
+        print(f"S2 positions: {len(s2_placements)}")
+    if search_surrounds == 3:
+        print(f"S3 positions: {len(s3_placements)}")
+
+
+    #5. Constraints
+    
+    all_cells = set(cell_covered_by_s1.keys())
+    if search_surrounds >= 2:
+        all_cells.update(cell_covered_by_s2.keys())
+    if search_surrounds >= 3:
+        all_cells.update(cell_covered_by_s3.keys())
+
+    # A. Disjointness
+    # For every cell, sum(s1) + sum(s2) <= 1
+    for c in all_cells:
+        if c in center_cells: continue
+        
+        s1_cov = cell_covered_by_s1.get(c, [])
+        s2_cov = cell_covered_by_s2.get(c, [])
+        s3_cov = cell_covered_by_s3.get(c, [])
+        
+        all_cov = s1_cov + s2_cov + s3_cov
+        if len(all_cov) > 1:
+            model.Add(sum(all_cov) <= 1)
+
+    print("Generated disjointness constraints.")
+
+    # B. S1 Surrounds Center
+    # All neighbors of Center must be covered by S1
+    for c in center_neighbors_set:
+        if c in cell_covered_by_s1:
+            model.Add(sum(cell_covered_by_s1[c]) == 1)
+        else:
+            print(f"Warning: Center neighbor {c} cannot be covered by any tile.")
+            print("Solver Status: INFEASIBLE (Trivial)")
+            print(f"No solution found: Center neighbor {c} cannot be covered (Trivial INFEASIBLE).\n")
+            return
+    print("Generated surrounds center constraints.")
+
+    # C. S2 Surrounds S1
+    # Logic: If any neighbor of cell c is covered by S1, then c must be covered by (S1 or S2).
+    # This forces S2 to fill all gaps around S1.
+    if search_surrounds >= 2:
+        check_set = set(cell_covered_by_s1.keys())
+        check_set.update(calculate_all_neighbor_pyramids(check_set))
+
+        for c in check_set:
+            if c in center_cells: continue
+
+            neighbors = calculate_all_neighbor_pyramids({c})
+
+            # Collect all S1 variables from all neighbors
+            neighbor_s1_vars = []
+            for n in neighbors:
+                neighbor_s1_vars.extend(cell_covered_by_s1.get(n, []))
+
+            if not neighbor_s1_vars: continue
+
+            # Optimization: Use Boolean Logic instead of Linear Arithmetic
+            # Logic: If any neighbor is S1, then c must be covered by (S1 or S2).
+            # Equivalent to: neighbor_is_s1 IMPLIES (c_is_s1 OR c_is_s2)
+            target_literals = cell_covered_by_s1.get(c, []) + cell_covered_by_s2.get(c, [])
+            for n_var in neighbor_s1_vars:
+                model.AddBoolOr([n_var.Not()] + target_literals)
+        print("Generated S2 surrounds S1 constraints.")
+
+    if search_surrounds == 3:
+        # D. S3 Surrounds S2
+        check_set = set(cell_covered_by_s2.keys())
+        check_set.update(calculate_all_neighbor_pyramids(check_set))
+
+        for c in check_set:
+            if c in center_cells: continue
+                
+            neighbors = calculate_all_neighbor_pyramids({c})
+                
+            # Collect all S2 variables from all neighbors
+            neighbor_s2_vars = []
+            for n in neighbors:
+                neighbor_s2_vars.extend(cell_covered_by_s2.get(n, []))
+                
+            if not neighbor_s2_vars: continue
+                
+            # Logic: If any neighbor is S2, then c must be covered by (S1 or S2 or S3).
+            target_literals = cell_covered_by_s1.get(c, []) + cell_covered_by_s2.get(c, []) + cell_covered_by_s3.get(c, [])
+            for n_var in neighbor_s2_vars:
+                model.AddBoolOr([n_var.Not()] + target_literals)
+        print("Generated S3 surrounds S2 constraints.")
+
+    print("generated model. Starting solver...")
+
+    # 6. Solve
+    solver = cp_model.CpSolver()
+    solver.parameters.num_search_workers = 8
+    solver.parameters.max_time_in_seconds = 3600
+    solver.parameters.log_search_progress = False
+    
+    print(f"Solving monolithic model for {search_surrounds} corona(s)...")
+    status = solver.Solve(model)
+
+    if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
+        print("Solution found!")
+        s1_tiles = [key for key, value in s1_placements.items() if solver.Value(value)] # key: ((x, y, z), rot)
+        if search_surrounds >= 2:
+            s2_tiles = [key for key, value in s2_placements.items() if solver.Value(value)]
+            if search_surrounds == 3:
+                s3_tiles = [key for key, value in s3_placements.items() if solver.Value(value)]
+        
+        with open("all_solutions_heesch1_tile.txt", "a") as f:
+            f.write("--- Monolithic Solution ---\n")
+            f.write("Corona 1:\n")
+            for t in s1_tiles:
+                #print(f"S1: {t}")
+                f.write(f"{t}\n")
+            
+            if search_surrounds >= 2:
+                f.write("Corona 2:\n")
+                for t in s2_tiles:
+                    #print(f"S2: {t}")
+                    f.write(f"{t}\n")
+
+            if search_surrounds == 3:
+                f.write("Corona 3:\n")
+                for t in s3_tiles:
+                    #print(f"S3: {t}")
+                    f.write(f"{t}\n")
+        
+        print(f"Solver Status: {solver.StatusName(status)}")
+        print("Solution Found:")
+        print(f"S1: {s1_tiles}")
+        if search_surrounds >= 2:
+            print(f"S2: {s2_tiles}")
+        if search_surrounds == 3:
+            print(f"S3: {s3_tiles}")
+        print("")
+        
+        # Return the solution dictionary for the next iteration
+        solution_data = {'s1': s1_tiles}
+        if search_surrounds >= 2:
+            solution_data['s2'] = s2_tiles
+        if search_surrounds == 3:
+            solution_data['s3'] = s3_tiles
+        return solution_data
+
+    elif status == cp_model.INFEASIBLE:
+        print("No solution found: INFEASIBLE. The solver proved no solution exists within the constraints.")
+        print(f"Solver Status: {solver.StatusName(status)}")
+        print("No solution found: INFEASIBLE\n")
+        return None
+    elif status == cp_model.UNKNOWN:
+        print("No solution found: UNKNOWN. The solver reached the time limit (timeout) without finding a solution.")
+        print(f"Solver Status: {solver.StatusName(status)}")
+        print("No solution found: UNKNOWN (Timeout)\n")
+        return None
+    else:
+        print(f"No solution found. Status: {status}")
+        print(f"Solver Status: {solver.StatusName(status)}")
+        print(f"No solution found. Status: {status}\n")
+        return None
+
+
 
 if __name__ == '__main__':
-    log_file = open("heesch_solver.log", "w")
-    summary_log = open("heesch_solver_summary.log", "w")
+    log_file = open("heesch_solver.txt", "w")
+    summary_log = open("heesch_solver_summary.txt", "w")
     summary_log.write("--- Heesch Solver Summary ---\n")
     summary_log.flush()
     
@@ -721,7 +973,7 @@ if __name__ == '__main__':
 
 
     shape_index = 0
-    for nrPyramidsInShape in range(1, 3):
+    for nrPyramidsInShape in range(6, 7):
         shapes = generate_polypyramids(nrPyramidsInShape)
 
         for shape in shapes:
@@ -729,15 +981,51 @@ if __name__ == '__main__':
             print(f"Shape: {list(shape)}")
             print(f"Surround: {list(surroundPyramids)}")
 
-            neighborTilePositions = calculate_all_neighbor_tile_positions(surroundPyramids, shape)
-            print(f"Nr Neighbor Tile Positions: {len(neighborTilePositions)}")
-            print(f"Neighbor Tile Positions: {neighborTilePositions}")
+            # ---------------- S1 ----------------
+            neighborTilePositionsS1 = calculate_all_neighbor_tile_positions(surroundPyramids, shape)
+            print(f"Nr Neighbor Tile Positions S1: {len(neighborTilePositionsS1)}")
+            #print(f"Neighbor Tile Positions S1: {neighborTilePositionsS1}")
 
-            neighborTilePyramids = set()
-            for pos, orientation in neighborTilePositions:
+            neighborTilePyramidsS1 = set()
+            for pos, orientation in neighborTilePositionsS1:
                 rotated_pyramids = create_rotated_pyramid_coords(orientation, shape, (0, 0, 0))
                 for px, py, pz, pyr in rotated_pyramids:
                     transformed_p = (px + pos[0], py + pos[1], pz + pos[2], pyr)
-                    neighborTilePyramids.add(transformed_p)
+                    neighborTilePyramidsS1.add(transformed_p)
 
-            print(f"Neighbor Tile Pyramids: {list(neighborTilePyramids)}")
+            #print(f"Neighbor Tile Pyramids: {list(neighborTilePyramidsS1)}")
+
+            # ---------------- S2 ----------------
+            surroundS1 = calculate_all_neighbor_pyramids(neighborTilePyramidsS1)
+            neighborTilePositionsS2 = calculate_all_neighbor_tile_positions(surroundS1, shape, forbiddenPyramids = surroundPyramids)
+            print(f"Nr Neighbor Tile Positions S2: {len(neighborTilePositionsS2)}")
+            #print(f"Neighbor Tile Positions S2: {neighborTilePositionsS2}")
+
+            neighborTilePyramidsS2 = set()
+            for pos, orientation in neighborTilePositionsS2:
+                rotated_pyramids = create_rotated_pyramid_coords(orientation, shape, (0, 0, 0))
+                for px, py, pz, pyr in rotated_pyramids:
+                    transformed_p = (px + pos[0], py + pos[1], pz + pos[2], pyr)
+                    neighborTilePyramidsS2.add(transformed_p)
+
+            #print(f"Neighbor Tile Pyramids: {list(neighborTilePyramidsS2)}")
+
+            # ---------------- S3 ----------------
+            surroundS2 = calculate_all_neighbor_pyramids(neighborTilePyramidsS2)
+            neighborTilePositionsS3 = calculate_all_neighbor_tile_positions(surroundS2, shape, forbiddenPyramids = surroundPyramids)
+            print(f"Nr Neighbor Tile Positions S3: {len(neighborTilePositionsS3)}")
+            #print(f"Neighbor Tile Positions S3: {neighborTilePositionsS3}")
+
+
+            # --- find all solutions ---
+            print(f"Checking shape {shape_index}...")
+            search_surrounds = 1
+            solution = solve_monolithic(shape_index, search_surrounds, shape, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3)
+            if solution:
+                search_surrounds += 1
+                solution = solve_monolithic(shape_index, search_surrounds, shape, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, previous_solution=solution)
+                if solution:
+                    search_surrounds += 1
+                    solve_monolithic(shape_index, search_surrounds, shape, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, previous_solution=solution)
+            shape_index += 1
+            

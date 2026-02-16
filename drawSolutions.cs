@@ -206,6 +206,7 @@ namespace drawSolutionsNamespace
             allS1 = new List<List<posRot>>();
             allS2 = new List<List<posRot>>();
             shapeIDs = new List<int>();
+            neighborTilePyramids = new List<List<pyramidCoord>>();
 
             vertices = new List<Vector3>();
             triangles = new List<int>();
@@ -231,9 +232,9 @@ namespace drawSolutionsNamespace
 
             //ImportTilesFromFile(path);
             //ImportPyramidsFromFile(path);
-            //ImportFromSolverLog(path);
+            ImportFromSolverLog(path);
             //parsePyramidSurround(path);
-            parseNeighborTilePositions(path);
+            //parseNeighborTilePositions(path);
 
 
 
@@ -462,168 +463,54 @@ namespace drawSolutionsNamespace
                 Debug.LogError($"File not found at: {filePath}");
                 return;
             }
-            else
-            {
-                Debug.Log($"File found at: {filePath}");
-            }
 
             allBases.Clear();
+            pyramidSurround.Clear();
             allS1.Clear();
             allS2.Clear();
             shapeIDs.Clear();
 
             string[] lines = File.ReadAllLines(filePath);
-
-            int currentShapeID = -1;
-            
-            // Candidate solution for the current shape
-            List<pyramidCoord> candidateBase = new List<pyramidCoord>();
-            List<posRot> candidateS1 = new List<posRot>();
-            List<posRot> candidateS2 = new List<posRot>();
-            
-            bool foundInfeasibleS2 = false;
-            bool foundInfeasibleS3 = false;
-
-            // Temporary variables for the current block being parsed
-            List<pyramidCoord> tempBase = new List<pyramidCoord>();
-            int tempCorona = 0;
-            bool tempOptimal = false;
+            int shapeCounter = 0;
 
             for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
 
-                if (line.StartsWith("Testing Shape"))
+                if (line.StartsWith("Shape: "))
                 {
-                    Debug.Log("parsing line " + line + ": 'Testing Shape': ");
-                    string[] parts = line.Split(' ');
-                    int shapeID = -1;
-                    if (parts.Length >= 3 && int.TryParse(parts[2], out int parsedId))
-                    {
-                        shapeID = parsedId;
-                        Debug.Log("parsed shapeID: " + shapeID);
-                    }
-
-                    if (shapeID != currentShapeID)
-                    {
-                        // Commit previous shape if valid
-                        if (currentShapeID != -1)
-                        {
-                            if ((foundInfeasibleS2 || foundInfeasibleS3) && candidateBase.Count > 0)
-                            {
-                                allBases.Add(new List<pyramidCoord>(candidateBase));
-                                allS1.Add(new List<posRot>(candidateS1));
-                                allS2.Add(new List<posRot>(candidateS2));
-                                shapeIDs.Add(currentShapeID);
-                                Debug.Log("committing previous shape");
-                            }
-                        }
-
-                        // Reset for new shape
-                        currentShapeID = shapeID;
-                        candidateBase.Clear();
-                        candidateS1.Clear();
-                        candidateS2.Clear();
-                        foundInfeasibleS2 = false;
-                        foundInfeasibleS3 = false;
-                        Debug.Log("parsed new shapeID, saving previous shape");
-                    }
+                    List<pyramidCoord> shape = ParsePyramidCoordList(line);
+                    allBases.Add(shape);
                     
-                    // Reset temp block variables
-                    tempBase.Clear();
-                    tempCorona = 0;
-                    tempOptimal = false;
-                }
-                else if (line.StartsWith("Pyramids:"))
-                {
-                    tempBase = ParsePyramidCoordList(line);
-                    Debug.Log("parsed pyramids, line: " + line);
-                }
-                else if (line.StartsWith("Coronas:"))
-                {
-                    string[] parts = line.Split(':');
-                    if (parts.Length > 1)
-                    {
-                        int.TryParse(parts[1].Trim().Split(' ')[0], out tempCorona);
-                    }
-                    Debug.Log("parsed line 'Coronas:', tempCorona: " + tempCorona);
-                }
-                else if (line.Contains("Solver Status:"))
-                {
-                    Debug.Log("parsed line 'Solver Status:': " + line);
-                    if (line.Contains("INFEASIBLE"))
-                    {
-                        if (tempCorona == 2) 
-                        {
-                            Debug.Log("parsed 'INFEASIBLE', setting foundInfeasibleS2 to true");
-                            foundInfeasibleS2 = true;
-                        }
-                        if (tempCorona == 3) 
-                        {
-                            foundInfeasibleS3 = true;
-                            Debug.Log("parsed 'INFEASIBLE', setting foundInfeasibleS3 to true");
-                        }
-                    }
-                    else if (line.Contains("OPTIMAL"))
-                    {
-                        tempOptimal = true;
-                        Debug.Log("parsed 'OPTIMAL', setting tempOptimal to true");
-
-                        if (tempCorona == 2) 
-                        {
-                            Debug.Log("parsed 'OPTIMAL', setting foundInfeasibleS2 to false");
-                            foundInfeasibleS2 = false;
-                        }
-                        if (tempCorona == 3) 
-                        {
-                            Debug.Log("parsed 'OPTIMAL', setting foundInfeasibleS3 to false");
-                            foundInfeasibleS3 = false;
-                        }
-                    }
-                }
-                else if (line.StartsWith("S1:") && tempOptimal)
-                {
-                    Debug.Log("parsed line 'S1:' and tempOptimal is true");
-                    candidateBase = new List<pyramidCoord>(tempBase);
-                    candidateS1 = ParsePosRotList(line);
-                    Debug.Log("parsed S1 setting candidateS1 to line: " + line);
+                    allS1.Add(new List<posRot>());
+                    allS2.Add(new List<posRot>());
+                    pyramidSurround.Add(new List<pyramidCoord>());
                     
-                    if (tempCorona == 1)
+                    shapeIDs.Add(shapeCounter++);
+                }
+                else if (line.StartsWith("Surround: "))
+                {
+                    if (pyramidSurround.Count > 0)
                     {
-                        candidateS2.Clear();
-                        Debug.Log("tempCorona == 1, clearing candidateS2");
+                        pyramidSurround[pyramidSurround.Count - 1] = ParsePyramidCoordList(line);
                     }
                 }
-                else if (line.StartsWith("S2:") && tempOptimal)
+                else if (line.StartsWith("S1: "))
                 {
-                    Debug.Log("parsed line 'S2:' and tempOptimal is true");
-                    candidateS2 = ParsePosRotList(line);
-                    Debug.Log("parsed S2 setting candidateS2 to line: " + line);
+                    if (allS1.Count > 0)
+                    {
+                        allS1[allS1.Count - 1] = ParsePosRotList(line);
+                    }
+                }
+                else if (line.StartsWith("S2: "))
+                {
+                    if (allS2.Count > 0)
+                    {
+                        allS2[allS2.Count - 1] = ParsePosRotList(line);
+                    }
                 }
             }
-
-            // Handle the last shape in the file
-            if (currentShapeID != -1)
-            {
-                if ((foundInfeasibleS2 || foundInfeasibleS3) && candidateBase.Count > 0)
-                {
-                    Debug.Log("foundInfeasibleS2 or foundInfeasibleS3 -> adding to allBases, allS1, allS2");
-                    allBases.Add(new List<pyramidCoord>(candidateBase));
-                    allS1.Add(new List<posRot>(candidateS1));
-                    allS2.Add(new List<posRot>(candidateS2));
-                    shapeIDs.Add(currentShapeID);
-                }
-                else
-                {
-                    Debug.Log("not foundInfeasibleS2 or foundInfeasibleS3 -> not adding to allBases, allS1, allS2");
-                }
-            }
-
             Debug.Log($"Imported {allBases.Count} shapes.");
-            //if (allBases.Count > 0)
-            //{
-            //    TryBuildShape();
-            //}
         }
 
         private List<pyramidCoord> ParsePyramidCoordList(string line)
@@ -636,22 +523,21 @@ namespace drawSolutionsNamespace
             if (start < 0 || end < 0) return result;
 
             string listContent = line.Substring(start + 1, end - start - 1);
+            string clean = listContent.Replace("(", "").Replace(")", "").Replace(" ", "");
+            if (string.IsNullOrEmpty(clean)) return result;
 
-            string[] entries = listContent.Split(new string[] { "), (" }, StringSplitOptions.None);
-
-            foreach (string entryRaw in entries)
+            string[] parts = clean.Split(',');
+            for (int i = 0; i < parts.Length; i += 4)
             {
-                string entry = entryRaw.Replace("(", "").Replace(")", "").Replace(" ", "");
-                string[] parts = entry.Split(',');
-
-                if (parts.Length == 4)
+                if (i + 3 < parts.Length)
                 {
-                    int x = int.Parse(parts[0]);
-                    int y = int.Parse(parts[1]);
-                    int z = int.Parse(parts[2]);
-                    int pyr = int.Parse(parts[3]);
-
-                    result.Add(new pyramidCoord(new int3(x, y, z), pyr));
+                    if (int.TryParse(parts[i], out int x) &&
+                        int.TryParse(parts[i + 1], out int y) &&
+                        int.TryParse(parts[i + 2], out int z) &&
+                        int.TryParse(parts[i + 3], out int p))
+                    {
+                        result.Add(new pyramidCoord(new int3(x, y, z), p));
+                    }
                 }
             }
             return result;
@@ -666,22 +552,22 @@ namespace drawSolutionsNamespace
 
             if (start < 0 || end < 0) return result;
 
-            string listContent = line.Substring(start + 1, end - start - 1);            
+            string content = line.Substring(start + 1, end - start - 1);
+            string clean = content.Replace("(", "").Replace(")", "").Replace(" ", "");
+            if (string.IsNullOrEmpty(clean)) return result;
 
-            string[] entries = listContent.Split(new string[] { "), (" }, StringSplitOptions.None);
-            foreach (string entryRaw in entries)            
+            string[] parts = clean.Split(',');
+            for (int i = 0; i < parts.Length; i += 4)
             {
-                string entry = entryRaw.Replace("(", "").Replace(")", "").Replace(" ",      "");
-                string[] parts = entry.Split(',');
-
-                if (parts.Length == 4)
+                if (i + 3 < parts.Length)
                 {
-                    int x = int.Parse(parts[0]);
-                    int y = int.Parse(parts[1]);
-                    int z = int.Parse(parts[2]);
-                    int r = int.Parse(parts[3]);
-
-                    result.Add(new posRot(new int3(x, y, z), r));
+                    if (int.TryParse(parts[i], out int x) &&
+                        int.TryParse(parts[i + 1], out int y) &&
+                        int.TryParse(parts[i + 2], out int z) &&
+                        int.TryParse(parts[i + 3], out int r))
+                    {
+                        result.Add(new posRot(new int3(x, y, z), r));
+                    }
                 }
             }
             return result;
@@ -697,28 +583,35 @@ namespace drawSolutionsNamespace
             if (shapeNr >= allBases.Count) shapeNr = allBases.Count - 1;
 
             Debug.Log("shapeNr: " + shapeNr + ", pyramidSurround count: " + pyramidSurround.Count);
+            
+            // S1 Generation
             surroundVerticesS1 = new List<Vector3>();
             surroundTrianglesS1 = new List<int>();
+            surroundPyramidsS1 = new List<pyramidCoord>();
 
-            generateMesh(surroundVerticesS1, surroundTrianglesS1, pyramidSurround[shapeNr]);
+            if (allS1 != null && shapeNr < allS1.Count && allS1[shapeNr] != null)
+            {
+                foreach (posRot pr in allS1[shapeNr])
+                {
+                    surroundPyramidsS1.AddRange(generateSingleTilePyramidCoords(pr.pos, pr.rot));
+                }
+            }
+            generateMesh(surroundVerticesS1, surroundTrianglesS1, surroundPyramidsS1);
 
+            // S2 Generation
             surroundPyramidsS2 = new List<pyramidCoord>();
             surroundVerticesS2 = new List<Vector3>();
             surroundTrianglesS2 = new List<int>();
-            Debug.Log("displayNeighborTile: " + displayNeighborTile + ", pos: " + allS2[shapeNr][displayNeighborTile].pos + ", rot: " + allS2[shapeNr][displayNeighborTile].rot);
-            generateMesh(surroundVerticesS2, surroundTrianglesS2, generateSingleTilePyramidCoords(allS2[shapeNr][displayNeighborTile].pos, allS2[shapeNr][displayNeighborTile].rot));
+            
+            if (allS2 != null && shapeNr < allS2.Count && allS2[shapeNr] != null)
+            {
+                foreach (posRot pr in allS2[shapeNr])
+                {
+                    surroundPyramidsS2.AddRange(generateSingleTilePyramidCoords(pr.pos, pr.rot));
+                }
+            }
+            generateMesh(surroundVerticesS2, surroundTrianglesS2, surroundPyramidsS2);
 
-
-            // S1
-            // List<Vector3> surroundVerticesS1 = new List<Vector3>();
-            // List<int> surroundTrianglesS1 = new List<int>();
-            // List<pyramidCoord> surroundPyramidsS1 = new List<pyramidCoord>();
-            // foreach (posRot pr in allS1[shapeNr])
-            // {
-            //     surroundPyramidsS1.AddRange(generateSingleTilePyramidCoords(pr.pos, pr.rot));
-            // }
-            // generateMesh(surroundVerticesS1, surroundTrianglesS1, surroundPyramidsS1);
-// 
             surroundMesh.Clear();
             surroundMesh.SetVertices(surroundVerticesS1);
             surroundMesh.SetTriangles(surroundTrianglesS1, 0);
@@ -726,19 +619,6 @@ namespace drawSolutionsNamespace
             surroundMeshFilter.mesh = surroundMesh;
             Debug.Log("generated S1 mesh!");
 
-            
-// 
-            // // S2
-            // List<Vector3> surroundVerticesS2 = new List<Vector3>();
-            // List<int> surroundTrianglesS2 = new List<int>();
-            // List<pyramidCoord> surroundPyramidsS2 = new List<pyramidCoord>();
-            // foreach (posRot pr in allS2[shapeNr])
-            // {
-            //     surroundPyramidsS2.AddRange(generateSingleTilePyramidCoords(pr.pos, pr.rot));
-            // }
-            // generateMesh(surroundVerticesS2, surroundTrianglesS2, surroundPyramidsS2);
-// 
-            
             surroundMesh2.Clear();
             surroundMesh2.SetVertices(surroundVerticesS2);
             surroundMesh2.SetTriangles(surroundTrianglesS2, 0);
@@ -748,7 +628,10 @@ namespace drawSolutionsNamespace
 
             neighborTilePyramidsVertices = new List<Vector3>();
             neighborTilePyramidsTriangles = new List<int>();
-            generateMesh(neighborTilePyramidsVertices, neighborTilePyramidsTriangles, neighborTilePyramids[shapeNr]);
+            if (neighborTilePyramids != null && shapeNr < neighborTilePyramids.Count && neighborTilePyramids[shapeNr] != null)
+            {
+                generateMesh(neighborTilePyramidsVertices, neighborTilePyramidsTriangles, neighborTilePyramids[shapeNr]);
+            }
 
             neighborTilePyramidsMesh.Clear();
             neighborTilePyramidsMesh.SetVertices(neighborTilePyramidsVertices);
