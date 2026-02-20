@@ -914,10 +914,13 @@ if __name__ == '__main__':
     
     surroundPyramidsS2 = list(getAllNeighborPyramids(pyramidsReachableByS2))
 
-    forbiddenForS3 = set(forbiddenForS2).union(surroundPyramidsLayer2)
+    #forbiddenForS3 = set(forbiddenForS2).union(surroundPyramidsLayer2) # TEST OFF
+    forbiddenForS3 = forbiddenForS2
+
 
     #------ S3 ------
-    neighborTilePositionsS3 = getAllNeighborTilePositions(pyramids, surroundPyramidsS2, forbiddenForS3)
+    targetsS3 = set(surroundPyramidsS2).union(pyramidsReachableByS2)
+    neighborTilePositionsS3 = getAllNeighborTilePositions(pyramids, list(targetsS3), forbiddenForS3)
 
 
     #---- solve monolithic ----
