@@ -335,7 +335,7 @@ def calculateNeighborPyramidsCase0():
     return neighborPyramids
 
 def getAllNeighborTilePositions(pyramids, neighborPyramids, forbiddenPyramids=None):
-    neighborTilePositions = []
+    neighborTilePositions = set()
     
     forbiddenSet = set(forbiddenPyramids) if forbiddenPyramids is not None else None
 
@@ -369,8 +369,7 @@ def getAllNeighborTilePositions(pyramids, neighborPyramids, forbiddenPyramids=No
                         rot_py = px * bx[1] + py * by[1] + pz * bz[1]
                         rot_pz = px * bx[2] + py * by[2] + pz * bz[2]
                         newPos = (n[0][0] - rot_px, n[0][1] - rot_py, n[0][2] - rot_pz, tuple(basisVectors))
-                        if newPos not in neighborTilePositions:
-                            neighborTilePositions.append(newPos)
+                        neighborTilePositions.add(newPos)
 
     #print(f"neighborTilePositions[0]: {neighborTilePositions[0]}")
     #print(f"neighborTilePositions[1]: {neighborTilePositions[1]}")
@@ -387,7 +386,7 @@ def getAllNeighborTilePositions(pyramids, neighborPyramids, forbiddenPyramids=No
             print(f"neighborTilePosition: {p}")
 
 
-    return neighborTilePositions
+    return list(neighborTilePositions)
 
 def generatePyramidsFromTransform(pyramids, transX, transY, transZ, basisVectors):
     newPyramids = []
@@ -900,27 +899,27 @@ if __name__ == '__main__':
         cells = generatePyramidsFromTransform(pyramids, pos[0], pos[1], pos[2], pos[3])
         pyramidsReachableByS1.update(cells)
 
-    surroundPyramidsS1 = list(getAllNeighborPyramids(pyramidsReachableByS1))
+    boundaryS1 = list(getAllNeighborPyramids(pyramidsReachableByS1))
+    surroundPyramidsS1 = surroundPyramidsLayer1
 
     forbiddenForS2 = set(pyramids).union(surroundPyramidsLayer1)
 
     #------ S2 ------
-    neighborTilePositionsS2 = getAllNeighborTilePositions(pyramids, surroundPyramidsS1, forbiddenForS2)
+    neighborTilePositionsS2 = getAllNeighborTilePositions(pyramids, boundaryS1, forbiddenForS2)
 
     pyramidsReachableByS2 = set()
     for pos in neighborTilePositionsS2:
         cells = generatePyramidsFromTransform(pyramids, pos[0], pos[1], pos[2], pos[3])
         pyramidsReachableByS2.update(cells)
     
-    surroundPyramidsS2 = list(getAllNeighborPyramids(pyramidsReachableByS2))
+    boundaryS2 = list(getAllNeighborPyramids(pyramidsReachableByS2))
+    surroundPyramidsS2 = surroundPyramidsLayer2
 
-    #forbiddenForS3 = set(forbiddenForS2).union(surroundPyramidsLayer2) # TEST OFF
-    forbiddenForS3 = forbiddenForS2
-
+    forbiddenForS3 = set(forbiddenForS2).union(surroundPyramidsS2)
 
     #------ S3 ------
-    targetsS3 = set(surroundPyramidsS2).union(pyramidsReachableByS2)
-    neighborTilePositionsS3 = getAllNeighborTilePositions(pyramids, list(targetsS3), forbiddenForS3)
+    boundaryS3 = set(boundaryS2).union(pyramidsReachableByS2)
+    neighborTilePositionsS3 = getAllNeighborTilePositions(pyramids, list(boundaryS3), forbiddenForS3)
 
 
     #---- solve monolithic ----
