@@ -372,14 +372,19 @@ def getAllNeighborTilePositions(pyramids, neighborPyramids, forbiddenPyramids=No
                         if newPos not in neighborTilePositions:
                             neighborTilePositions.append(newPos)
 
-    print(f"neighborTilePositions[0]: {neighborTilePositions[0]}")
-    print(f"neighborTilePositions[1]: {neighborTilePositions[1]}")
-    print(f"neighborTilePositions[2]: {neighborTilePositions[2]}")
-    print(f"neighborTilePositions[3]: {neighborTilePositions[3]}")
-    print(f"neighborTilePositions[4]: {neighborTilePositions[4]}")
-    print(f"neighborTilePositions[5]: {neighborTilePositions[5]}")
-    print("neighborTilePositions[6]: ...")
-    print(f"Nr neighborTilePositions: {len(neighborTilePositions)}")
+    #print(f"neighborTilePositions[0]: {neighborTilePositions[0]}")
+    #print(f"neighborTilePositions[1]: {neighborTilePositions[1]}")
+    #print(f"neighborTilePositions[2]: {neighborTilePositions[2]}")
+    #print(f"neighborTilePositions[3]: {neighborTilePositions[3]}")
+    #print(f"neighborTilePositions[4]: {neighborTilePositions[4]}")
+    #print(f"neighborTilePositions[5]: {neighborTilePositions[5]}")
+    #print("neighborTilePositions[6]: ...")
+    #print(f"Nr neighborTilePositions: {len(neighborTilePositions)}")
+    count = 0
+    for p in neighborTilePositions:
+        if count < 100:
+            count += 1
+            print(f"neighborTilePosition: {p}")
 
 
     return neighborTilePositions
@@ -522,17 +527,17 @@ def generate_polypyramids(n):
     layer0 = []
     print("Generating root node...")
     rootPlacement = ((0, 0, 0), (1, 0, 0))
-    (testPos, testPyr) = rootPlacement
-    print(f"testPos: {testPos}")
-    print(f"testPyr: {testPyr}")
+    #(testPos, testPyr) = rootPlacement
+    #print(f"testPos: {testPos}")
+    #print(f"testPyr: {testPyr}")
     root = GenNode(rootPlacement)
-    print(f"test root placement: {root.placement}")
+    #print(f"test root placement: {root.placement}")
     rootPos = root.placement[0]
     rootPyr = root.placement[1]
 
-    print(f"root placement pos: ({rootPos[0]}, {rootPos[1]}, {rootPos[2]})")
-    print(f"root placement pyr: ({rootPyr[0]}, {rootPyr[1]}, {rootPyr[2]})")
-    print(f"root pyramids: {root.pyramids}")
+    #print(f"root placement pos: ({rootPos[0]}, {rootPos[1]}, {rootPos[2]})")
+    #print(f"root placement pyr: ({rootPyr[0]}, {rootPyr[1]}, {rootPyr[2]})")
+    #print(f"root pyramids: {root.pyramids}")
     root.calculateFaceNeighbors()
     layer0.append(root)
     nodes.append(layer0)
@@ -724,50 +729,51 @@ def solve_monolithic(search_surrounds, basePyramids, neighborTilePositionsS1, ne
     # Logic: If any neighbor of cell c is covered by S1, then c must be covered by (S1 or S2).
     # This forces S2 to fill all gaps around S1.
     if search_surrounds >= 2:
-        candidates = set(cell_covered_by_s1.keys())
-        candidates.update(getAllNeighborPyramids(candidates))
+        for pos, s1_var in s1_placements.items():
+            coveredCells = generatePyramidsFromTransform(basePyramids, pos[0], pos[1], pos[2], pos[3])
 
-        for c in candidates:
-            if c in baseSet: continue
-
-            neighbors = getAllNeighborPyramids({c})
-
-            # Collect all S1 variables from all neighbors
-            neighbor_s1_vars = []
+            for cell in coveredCells:
+                if cell in baseSet: 
+                    continue
+            
+            neighbors = getAllNeighborPyramids({cell})
             for n in neighbors:
-                neighbor_s1_vars.extend(cell_covered_by_s1.get(n, []))
+                if n in baseSet:
+                    continue
 
-            if not neighbor_s1_vars: continue
+                # variables that could cover neighbor cell
+                target_literals = (cell_covered_by_s1.get(n, []) + cell_covered_by_s2.get(n, []))
 
-            # Optimization: Use Boolean Logic instead of Linear Arithmetic
-            # Logic: If any neighbor is S1, then c must be covered by (S1 or S2).
-            # Equivalent to: neighbor_is_s1 IMPLIES (c_is_s1 OR c_is_s2)
-            target_literals = cell_covered_by_s1.get(c, []) + cell_covered_by_s2.get(c, [])
-            for n_var in neighbor_s1_vars:
-                model.AddBoolOr([n_var.Not()] + target_literals)
+                # if no placement can cover this neighbor, skip
+                if not target_literals:
+                    continue
+                
+                # if s1_var selected -> neighbor covered
+                model.AddBoolOr([s1_var.Not()] + target_literals)
         print("Generated surrounds S2 constraints.")
 
+    # D. S3 Surrounds S2
     if search_surrounds >= 3:
-        # D. S3 Surrounds S2
-        candidates = set(cell_covered_by_s2.keys())
-        candidates.update(getAllNeighborPyramids(candidates))
+        for pos, s2_var in s2_placements.items():
+            coveredCells = generatePyramidsFromTransform(basePyramids, pos[0], pos[1], pos[2], pos[3])
 
-        for c in candidates:
-            if c in baseSet: continue
-
-            neighbors = getAllNeighborPyramids({c})
-
-            # Collect all S2 variables from all neighbors
-            neighbor_s2_vars = []
+            for cell in coveredCells:
+                if cell in baseSet: 
+                    continue
+                
+            neighbors = getAllNeighborPyramids({cell})
             for n in neighbors:
-                neighbor_s2_vars.extend(cell_covered_by_s2.get(n, []))
+                if n in baseSet:
+                    continue
 
-            if not neighbor_s2_vars: continue
+                target_literals = (cell_covered_by_s1.get(n, []) + cell_covered_by_s2.get(n, []) + cell_covered_by_s3.get(n, []))
 
-            # Logic: If any neighbor is S2, then c must be covered by (S1 or S2 or S3).
-            target_literals = cell_covered_by_s1.get(c, []) + cell_covered_by_s2.get(c, []) + cell_covered_by_s3.get(c, [])
-            for n_var in neighbor_s2_vars:
-                model.AddBoolOr([n_var.Not()] + target_literals)
+                if not target_literals:
+                    continue
+
+                # if s2_var selected -> neighbor covered
+                model.AddBoolOr([s2_var.Not()] + target_literals)
+
         print("Generated surrounds S3 constraints.")
     
     print("generated model. Starting solver...")
@@ -782,7 +788,33 @@ def solve_monolithic(search_surrounds, basePyramids, neighborTilePositionsS1, ne
     status = solver.Solve(model)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
+        print(f"Solver status: {solver.StatusName(status)}")
         print("Solution found!")
+        s1_tiles = [key for key, value in s1_placements.items() if solver.Value(value)] # key: ((x, y, z), rot)
+        print(f"S1: {s1_tiles}")
+        s1_solution_pyramids = set()
+        for t in s1_tiles:
+            s1_solution_pyramids.update(generatePyramidsFromTransform(basePyramids, t[0], t[1], t[2], t[3]))
+        exportPyramids(s1_solution_pyramids, "s1_solution")
+        if search_surrounds >= 2:
+            s2_tiles = [key for key, value in s2_placements.items() if solver.Value(value)]
+            print("")
+            print(f"S2: {s2_tiles}")
+            s2_solution_pyramids = set()
+            for t in s2_tiles:
+                s2_solution_pyramids.update(generatePyramidsFromTransform(basePyramids, t[0], t[1], t[2], t[3]))
+            exportPyramids(s2_solution_pyramids, "s2_solution")
+            if search_surrounds == 3:
+                s3_tiles = [key for key, value in s3_placements.items() if solver.Value(value)]
+                print("")
+                print(f"S3: {s3_tiles}")
+                s3_solution_pyramids = set()
+                for t in s3_tiles:
+                    s3_solution_pyramids.update(generatePyramidsFromTransform(basePyramids, t[0], t[1], t[2], t[3]))
+                exportPyramids(s3_solution_pyramids, "s3_solution")
+
+
+
 
     elif status == cp_model.INFEASIBLE:
         print("No solution found: INFEASIBLE. The solver proved no solution exists within the constraints.")
@@ -798,13 +830,36 @@ if __name__ == '__main__':
     for polypyramid in polypyramids:
         print(f"polypyramid: {polypyramid}")
 
-    
+    pyrCoord_xp = ((0, 0, 0), (1, 0, 0))
+    pyrCoord_yp = ((0, 0, 0), (0, 1, 0))
+    pyrCoord_yn = ((0, 0, 0), (0, -1, 0))
+    pyrCoord_1xn = ((1, 0, 0), (-1, 0, 0))
+    pyrCoord_1zp = ((1, 0, 0), (0, 0, 1))
+    pyrCoord_1zn = ((1, 0, 0), (0, 0, -1)) # corona 1, 2 OK, corona 3 infeasible ERROR
+
+    #pyrCoord_xp = ((0, 0, 0), (1, 0, 0))
+    #pyrCoord_nx = ((0, 0, 0), (-1, 0, 0))
+    #pyrCoord_yp = ((0, 0, 0), (0, 1, 0))
+    #pyrCoord_yn = ((0, 0, 0), (0, -1, 0))
+    #pyrCoord_zp = ((0, 0, 0), (0, 0, 1))
+    #pyrCoord_zn = ((0, 0, 0), (0, 0, -1)) # OK
+
+    #pyrCoord_xp = ((0, 0, 0), (1, 0, 0))
+    #pyrCoord_nx = ((1, 0, 0), (-1, 0, 0)) # OK
+
+    #-------------------------------------------------------------
+    #                                     -------------------
+
+    #ERROR !!! -> cant find solution !!!   -> s. gemini !!!
+
+    #                                     -------------------
+    #-------------------------------------------------------------
 
     neighborPyramidsCase0 = calculateNeighborPyramidsCase0()
     print(f"Nr neighborPyramidsCase0: {len(neighborPyramidsCase0)}")
 
-    #pyramids = [pyrCoord0, pyrCoord1, pyrCoord2, pyrCoord3, pyrCoord4, pyrCoord5]
-    pyramids = polypyramids[0]
+    pyramids = [pyrCoord_xp]#, pyrCoord_yp, pyrCoord_yn, pyrCoord_1xn, pyrCoord_1zp, pyrCoord_1zn]
+    #pyramids = [pyrCoord_xp, pyrCoord_nx]#, pyrCoord_yp, pyrCoord_yn, pyrCoord_zp, pyrCoord_zn]
     print(f"pyramids: {pyramids}")
     
     surroundPyramidsLayer1 = list(getAllNeighborPyramids(pyramids))
@@ -842,19 +897,33 @@ if __name__ == '__main__':
         print("OK: no overlap of any tile position and neighborPyrmaids")
     #-------------------
 
-    surroundPyramidsS1 = list(getAllNeighborPyramids(set(pyramids).union(surroundPyramidsLayer1)))
+    pyramidsReachableByS1 = set()
+    for pos in neighborTilePositionsS1:
+        cells = generatePyramidsFromTransform(pyramids, pos[0], pos[1], pos[2], pos[3])
+        pyramidsReachableByS1.update(cells)
+
+    surroundPyramidsS1 = list(getAllNeighborPyramids(pyramidsReachableByS1))
+
+    forbiddenForS2 = set(pyramids).union(surroundPyramidsLayer1)
 
     #------ S2 ------
-    neighborTilePositionsS2 = getAllNeighborTilePositions(pyramids, surroundPyramidsS1, set(pyramids).union(surroundPyramidsLayer1))
+    neighborTilePositionsS2 = getAllNeighborTilePositions(pyramids, surroundPyramidsS1, forbiddenForS2)
 
-    surroundPyramidsS2 = list(getAllNeighborPyramids(set(pyramids).union(surroundPyramidsLayer1).union(surroundPyramidsLayer2)))
+    pyramidsReachableByS2 = set()
+    for pos in neighborTilePositionsS2:
+        cells = generatePyramidsFromTransform(pyramids, pos[0], pos[1], pos[2], pos[3])
+        pyramidsReachableByS2.update(cells)
+    
+    surroundPyramidsS2 = list(getAllNeighborPyramids(pyramidsReachableByS2))
+
+    forbiddenForS3 = set(forbiddenForS2).union(surroundPyramidsLayer2)
 
     #------ S3 ------
-    neighborTilePositionsS3 = getAllNeighborTilePositions(pyramids, surroundPyramidsS2, surroundPyramidsLayer2)
+    neighborTilePositionsS3 = getAllNeighborTilePositions(pyramids, surroundPyramidsS2, forbiddenForS3)
 
 
     #---- solve monolithic ----
-    search_surrounds = 1
+    search_surrounds = 3
     solution = solve_monolithic(search_surrounds, pyramids, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, surroundPyramidsLayer1, surroundPyramidsLayer2)
     
 
