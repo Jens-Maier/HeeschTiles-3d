@@ -3,80 +3,463 @@ import sys
 from collections import defaultdict
 from typing import List, Set, Tuple
 
-
-PyramidCoord = Tuple[int, int, int, int]
+# Type alias for a pyramid coordinate for better readability
+Pyramid = Tuple[int, int, int]
 Position = Tuple[int, int, int]
 
-def get_face_neighbor_candidates(p):
-    # Returns list of (x, y, z, pyr)
-    candidates = []
-    x, y, z, pyr = p
-    
-    if pyr == 0:
-        # 2, 3, 4, 5, x+1: 1
-        candidates.append((x, y, z, 2))
-        candidates.append((x, y, z, 3))
-        candidates.append((x, y, z, 4))
-        candidates.append((x, y, z, 5))
-        candidates.append((x + 1, y, z, 1))
-    elif pyr == 1:
-        # 2, 3, 4, 5, x-1: 0
-        candidates.append((x, y, z, 2))
-        candidates.append((x, y, z, 3))
-        candidates.append((x, y, z, 4))
-        candidates.append((x, y, z, 5))
-        candidates.append((x - 1, y, z, 0))
-    elif pyr == 2:
-        # 0, 1, 4, 5, y+1: 3
-        candidates.append((x, y, z, 0))
-        candidates.append((x, y, z, 1))
-        candidates.append((x, y, z, 4))
-        candidates.append((x, y, z, 5))
-        candidates.append((x, y + 1, z, 3))
-    elif pyr == 3:
-        # 0, 1, 4, 5, y-1: 2
-        candidates.append((x, y, z, 0))
-        candidates.append((x, y, z, 1))
-        candidates.append((x, y, z, 4))
-        candidates.append((x, y, z, 5))
-        candidates.append((x, y - 1, z, 2))
-    elif pyr == 4:
-        # 0, 1, 2, 3, z+1: 5
-        candidates.append((x, y, z, 0))
-        candidates.append((x, y, z, 1))
-        candidates.append((x, y, z, 2))
-        candidates.append((x, y, z, 3))
-        candidates.append((x, y, z + 1, 5))
-    elif pyr == 5:
-        # 0, 1, 2, 3, z-1: 4
-        candidates.append((x, y, z, 0))
-        candidates.append((x, y, z, 1))
-        candidates.append((x, y, z, 2))
-        candidates.append((x, y, z, 3))
-        candidates.append((x, y, z - 1, 4))
+verticesPyramid0 = []
+verticesPyramid0.append((0.5, -0.5, 0.5))
+verticesPyramid0.append((0.5, 0.5, 0.5))
+verticesPyramid0.append((0.5, 0.5, -0.5))
+verticesPyramid0.append((0.5, -0.5, -0.5))
+verticesPyramid0.append((0, 0, 0))
+
+verticesPyramid1 = []
+verticesPyramid1.append((-0.5, -0.5, -0.5))
+verticesPyramid1.append((-0.5, 0.5, -0.5))
+verticesPyramid1.append((-0.5, 0.5, 0.5))
+verticesPyramid1.append((-0.5, -0.5, 0.5))
+verticesPyramid1.append((0, 0, 0))
+
+verticesPyramid2 = []
+verticesPyramid2.append((0.5, 0.5, 0.5))
+verticesPyramid2.append((-0.5, 0.5, 0.5))
+verticesPyramid2.append((-0.5, 0.5, -0.5))
+verticesPyramid2.append((0.5, 0.5, -0.5))
+verticesPyramid2.append((0, 0, 0))
+
+verticesPyramid3 = []
+verticesPyramid3.append((0.5, -0.5, -0.5))
+verticesPyramid3.append((-0.5, -0.5, -0.5))
+verticesPyramid3.append((-0.5, -0.5, 0.5))
+verticesPyramid3.append((0.5, -0.5, 0.5))
+verticesPyramid3.append((0, 0, 0))
+
+verticesPyramid4 = []
+verticesPyramid4.append((0.5, 0.5, 0.5))
+verticesPyramid4.append((-0.5, 0.5, 0.5))
+verticesPyramid4.append((-0.5, -0.5, 0.5))
+verticesPyramid4.append((0.5, -0.5, 0.5))
+verticesPyramid4.append((0, 0, 0))
+
+verticesPyramid5 = []
+verticesPyramid5.append((0.5, 0.5, -0.5))
+verticesPyramid5.append((0.5, -0.5, -0.5))
+verticesPyramid5.append((-0.5, -0.5, -0.5))
+verticesPyramid5.append((-0.5, 0.5, -0.5))
+verticesPyramid5.append((0, 0, 0))
+
+def generatePyrmaidVertices(p):
+    vertices = []
+    if p[1] == (1, 0, 0):
+        for v in verticesPyramid0:
+            vertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+    if p[1] == (-1, 0, 0):
+        for v in verticesPyramid1:
+            vertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+    if p[1] == (0, 1, 0):
+        for v in verticesPyramid2:
+            vertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+    if p[1] == (0, -1, 0):
+        for v in verticesPyramid3:
+            vertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+    if p[1] == (0, 0, 1):
+        for v in verticesPyramid4:
+            vertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+    if p[1] == (0, 0, -1):
+        for v in verticesPyramid5:
+            vertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+
+    return vertices
+
+
+def exportPyramids(pyramids, fileName):
+    triangles = []
+    allVertices = []
+    pyramidCount = 0
+    #print("exporting pyramids...")
+    #print(f"pyramids: {pyramids}")
+
+    for p in pyramids:
+        #print(f"exporting pyramid {p}")
+        #print(f"p[0]: {p[0]}")
+        #print(f"p[1]: {p[1]}")
+        if p[1] == (1, 0, 0):
+            for v in verticesPyramid0:
+                allVertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+                #print(f"adding vertices (1, 0, 0)")
+        if p[1] == (-1, 0, 0):
+            for v in verticesPyramid1:
+                allVertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+                #print(f"adding vertices (-1, 0, 0)")
+        if p[1] == (0, 1, 0):
+            for v in verticesPyramid2:
+                allVertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+                #print(f"adding vertices (0, 1, 0)")
+        if p[1] == (0, -1, 0):
+            for v in verticesPyramid3:
+                allVertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+                #print(f"adding vertices (0, -1, 0)")
+        if p[1] == (0, 0, 1):
+            for v in verticesPyramid4:
+                allVertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+                #print(f"adding vertices (0, 0, 1)")
+        if p[1] == (0, 0, -1):
+            for v in verticesPyramid5:
+                allVertices.append((v[0] + p[0][0], v[1] + p[0][1], v[2] + p[0][2]))
+                #print(f"adding vertices (0, 0, -1)")
         
+        if p[1] != (1, 0, 0) and p[1] != (-1, 0, 0) and p[1] != (0, 1, 0) and p[1] != (0, -1, 0) and p[1] != (0, 0, 1) and p[1] != (0, 0, -1):
+            print(f"ERROR exporting pyramid: {p}")
+
+        triangles.append((5 * pyramidCount + 0,
+                          5 * pyramidCount + 1,
+                          5 * pyramidCount + 4))
+
+        triangles.append((5 * pyramidCount + 1,
+                          5 * pyramidCount + 2,
+                          5 * pyramidCount + 4))
+
+        triangles.append((5 * pyramidCount + 2,
+                          5 * pyramidCount + 3,
+                          5 * pyramidCount + 4))
+
+        triangles.append((5 * pyramidCount + 3,
+                          5 * pyramidCount + 0,
+                          5 * pyramidCount + 4))
+
+        triangles.append((5 * pyramidCount + 0,
+                          5 * pyramidCount + 2,
+                          5 * pyramidCount + 1))
+
+        triangles.append((5 * pyramidCount + 0,
+                          5 * pyramidCount + 3,
+                          5 * pyramidCount + 2))
+
+        pyramidCount += 1
+
+    #print("allVertices: ")
+    #print(allVertices)
+
+
+    with open("/home/j/Documents/SAT_solver/" + fileName +".obj", 'w') as f:
+        # Write vertices
+        for vertex in allVertices:
+            f.write(f"v {vertex[0]} {vertex[1]} {vertex[2]}\n")
+        
+        # Write triangles
+        for triangle in triangles:
+            # Add 1 to each index since OBJ format is 1-based
+            f.write(f"f {triangle[0]+1} {triangle[1]+1} {triangle[2]+1}\n")
+
+    #print("exported pyramids to obj file")
+        
+
+def rotatePyramids(pyramids, axis, direction, center, basisVectors):
+    newCoords = []
+    oldBasisVectors = basisVectors.copy()
+    #print(f"rotatePyramids: axis: {axis}, direction: {direction}, center: {center}")
+    for (pos, pyr) in pyramids:
+        #print(f"pyramid: {pyr}")
+        if axis == 0:
+            if direction:  # x -> x, y -> z, z -> -y
+                newPyr = (pyr[0], -pyr[2], pyr[1])
+                newPos = (pos[0], center[1] - (pos[2] - center[2]), center[2] + (pos[1] - center[1]))
+            else:  # x -> x, y -> -z, z -> y
+                newPyr = (pyr[0], pyr[2], -pyr[1])
+                newPos = (pos[0], center[1] + (pos[2] - center[2]), center[2] - (pos[1] - center[1]))
+        elif axis == 1:
+            if direction:  # x -> -z, y -> y, z -> x
+                newPyr = (pyr[2], pyr[1], -pyr[0])
+                newPos = (center[0] + (pos[2] - center[2]), pos[1], center[2] - (pos[0] - center[0]))
+            else:  # x -> z, y -> y, z -> -x
+                newPyr = (-pyr[2], pyr[1], pyr[0])
+                newPos = (center[0] - (pos[2] - center[2]), pos[1], center[2] + (pos[0] - center[0]))
+        elif axis == 2:
+            if direction:  # x -> y, y -> -x, z -> z
+                newPyr = (-pyr[1], pyr[0], pyr[2])
+                newPos = (center[0] - (pos[1] - center[1]), center[1] + (pos[0] - center[0]), pos[2])
+            else:  # x -> -y, y -> x, z -> z
+                newPyr = (pyr[1], -pyr[0], pyr[2])
+                newPos = (center[0] + (pos[1] - center[1]), center[1] - (pos[0] - center[0]), pos[2])
+        #print(f"new_pos: {newPos}, new_pyr: {newPyr}")
+        newCoords.append((newPos, newPyr))
+
+    newBasisVectors = basisVectors.copy()
+    for i, b in enumerate(basisVectors):
+        if axis == 0:
+            if direction:  # x -> x, y -> z, z -> -y
+                newBasisVectors[i] = (b[0], -b[2], b[1])
+            else:  # x -> x, y -> -z, z -> y
+                newBasisVectors[i] = (b[0], b[2], -b[1])
+
+        elif axis == 1:
+            if direction:  # x -> -z, y -> y, z -> x
+                newBasisVectors[i] = (b[2], b[1], -b[0])
+            else:  # x -> z, y -> y, z -> -x
+                newBasisVectors[i] = (-b[2], b[1], b[0])
+
+        elif axis == 2:
+            if direction:  # x -> y, y -> -x, z -> z
+                newBasisVectors[i] = (-b[1], b[0], b[2])
+            else:  # x -> -y, y -> x, z -> z
+                newBasisVectors[i] = (b[1], -b[0], b[2])
+
+    #print(f"old basis vectors: {oldBasisVectors}")
+    #print(f"new basis vectors: {newBasisVectors}")
+    return (newCoords, newBasisVectors)
+
+def cross(a, b):
+    return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
+
+def transformPyramids(pyramids, startPyrCoord, endPyrCoord, rot):
+    #print(f"in transformPyramids(): startPyrCoord: {startPyrCoord}")
+    #print(f"                        endPyrCoord:   {endPyrCoord}")
+    #print(f"                        rot: {rot}")
+    (startPos, startPyr) = startPyrCoord
+    (endPos, endPyr) = endPyrCoord
+
+    #print(f"in transformPyramids(): pyramids: {pyramids}")
+
+    basisVectors = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+
+    rotatedPyramids = []
+
+    if startPyr == endPyr:
+        #print("startPyr == endPyr")
+        rotatedPyramids = pyramids
+    elif startPyr == (-endPyr[0], -endPyr[1], -endPyr[2]):
+        #print("startPyr == (-endPyr[0], -endPyr[1], -endPyr[2])")
+        #print(f"endPos: {endPos}")
+        if abs(startPyr[0]) == 1: 
+            (rotatedPyramids, basisVectors) = rotatePyramids(pyramids, 1, True, startPos, basisVectors)
+            (rotatedPyramids, basisVectors) = rotatePyramids(rotatedPyramids, 1, True, startPos, basisVectors)
+        elif abs(startPyr[1]) == 1:
+            (rotatedPyramids, basisVectors) = rotatePyramids(pyramids, 2, True, startPos, basisVectors)
+            (rotatedPyramids, basisVectors) = rotatePyramids(rotatedPyramids, 2, True, startPos, basisVectors)
+        elif abs(startPyr[2]) == 1:
+            (rotatedPyramids, basisVectors) = rotatePyramids(pyramids, 0, True, startPos, basisVectors)
+            (rotatedPyramids, basisVectors) = rotatePyramids(rotatedPyramids, 0, True, startPos, basisVectors)
+
+    axis = cross(startPyr, endPyr)
+    #print(f"axis: {axis}, startPyr: {startPyr}, endPyr: {endPyr}")
+    
+    if axis == (1, 0, 0):
+        (rotatedPyramids, basisVectors) = rotatePyramids(pyramids, 0, True, startPos, basisVectors)
+    elif axis == (-1, 0, 0):
+        (rotatedPyramids, basisVectors) = rotatePyramids(pyramids, 0, False, startPos, basisVectors)
+    elif axis == (0, 1, 0):
+        (rotatedPyramids, basisVectors) = rotatePyramids(pyramids, 1, True, startPos, basisVectors)
+    elif axis == (0, -1, 0):
+        (rotatedPyramids, basisVectors) = rotatePyramids(pyramids, 1, False, startPos, basisVectors)
+    elif axis == (0, 0, 1):
+        (rotatedPyramids, basisVectors) = rotatePyramids(pyramids, 2, True, startPos, basisVectors)
+    elif axis == (0, 0, -1):
+        (rotatedPyramids, basisVectors) = rotatePyramids(pyramids, 2, False, startPos, basisVectors)
+
+    #print(f"rotatedPyramids: {rotatedPyramids}")
+
+
+    transformedPyramids = []
+    diff = (endPos[0] - startPos[0], endPos[1] - startPos[1], endPos[2] - startPos[2])
+    #print(f"diff: {diff}")
+    for (pos, pyr) in rotatedPyramids:
+        newPos = (pos[0] + diff[0], pos[1] + diff[1], pos[2] + diff[2])
+        transformedPyramids.append((newPos, pyr))
+
+    #print(f"transformedPyramids (before 4-rotations): {transformedPyramids}")
+    #(end_pos, end_pyr) = endPyr
+    #print(f"endPyr: {endPyr}") #endPyr: (0, -1, 0)
+    #print(f"endPos: {endPos}")
+    
+    if abs(endPyr[0]) == 1:
+        for r in range(rot):
+            (transformedPyramids, basisVectors) = rotatePyramids(transformedPyramids, 0, True, endPos, basisVectors)
+    elif abs(endPyr[1]) == 1:
+        for r in range(rot):
+            (transformedPyramids, basisVectors) = rotatePyramids(transformedPyramids, 1, True, endPos, basisVectors)
+    elif abs(endPyr[2]) == 1:
+        for r in range(rot):
+            (transformedPyramids, basisVectors) = rotatePyramids(transformedPyramids, 2, True, endPos, basisVectors)
+
+    #print(f"startPyrCoord: {startPyrCoord}")
+    #print(f"endPyrCoord: {endPyrCoord}")
+    #print(f"axis: ({axis[0]}, {axis[1]}, {axis[2]})")
+    #print(f"diff: ({diff[0]}, {diff[1]}, {diff[2]})")
+
+    #print(f"transformedPyramids: {transformedPyramids}")
+
+    return (transformedPyramids, basisVectors)
+
+neighborPyramidsCase0 = []
+
+def getAllNeighborPyramids(pyramids):
+    neighborPyramids = set()
+    candidates = set()
+    for p in pyramids:
+        (transformedPyramids, basisVectors) = transformPyramids(neighborPyramidsCase0, ((0, 0, 0), (1, 0, 0)), p, 0)
+        candidates.update(transformedPyramids)
+
+    
+    #print(f"candidates: {candidates}")
+
+    for c in candidates:
+        if c not in pyramids:
+            #print(f"adding candidate: {c}")
+            neighborPyramids.add(c) # set -> no duplicates
+    #print(f"nr neighborPyramids: {len(neighborPyramids)}")
+    return neighborPyramids
+
+def calculateNeighborPyramidsCase0():
+    neighborPyramids = []
+    tileVertices = verticesPyramid0
+    allPyramids = []
+    allPyramids.append((1, 0, 0))
+    allPyramids.append((-1, 0, 0))
+    allPyramids.append((0, 1, 0))
+    allPyramids.append((0, -1, 0))
+    allPyramids.append((0, 0, 1))
+    allPyramids.append((0, 0, -1))
+
+
+    for x in range(-1, 2):
+        for y in range(-1, 2):
+            for z in range(-1, 2):
+                for p in allPyramids:
+                    if x == 0 and y == 0 and z == 0 and p == (1, 0, 0):
+                        continue
+                    coord = ((x, y, z), p)
+                    vertices = generatePyrmaidVertices(coord)
+                    if any(v in tileVertices for v in vertices):
+                        neighborPyramids.append(coord)
+    return neighborPyramids
+
+def getAllNeighborTilePositions(pyramids, neighborPyramids, forbiddenPyramids=None):
+    neighborTilePositions = []
+    
+    forbiddenSet = set(forbiddenPyramids) if forbiddenPyramids is not None else None
+
+    #print(f"in getAllNeighborTilePositions(): pyramids: {pyramids}")
+    #print(f"in getAllNeighborTilePositions(): neighborPyramids: {neighborPyramids}")
+
+    for n in neighborPyramids:
+        for p in pyramids:
+            for r in range(4):
+                (transformedPyramids, basisVectors) = transformPyramids(pyramids, p, n, r)
+
+                if not any(pyr in neighborPyramids for pyr in transformedPyramids):
+                    print(f"ERROR: in getAllNeighborTilePositions(): no overlap of tile position and neighborPyrmaids")
+                    print(f"n: {n}")
+                    print(f"p: {p}")
+                    print(f"r: {r}")
+                    #print(f"transformedPyramids: {transformedPyramids}")
+                    if n in transformedPyramids:
+                        print("n IS in transformedPyramids")
+                    else:
+                        print("n IS NOT in transformedPyramids")
+                        # Find where p moved to
+                        # It should be at n's position
+    
+                if not any(pyr in pyramids for pyr in transformedPyramids):
+                    if forbiddenSet is None or not any(pyr in forbiddenSet for pyr in transformedPyramids):
+                        # Calculate R(p)
+                        bx, by, bz = basisVectors[0], basisVectors[1], basisVectors[2]
+                        px, py, pz = p[0]
+                        rot_px = px * bx[0] + py * by[0] + pz * bz[0]
+                        rot_py = px * bx[1] + py * by[1] + pz * bz[1]
+                        rot_pz = px * bx[2] + py * by[2] + pz * bz[2]
+                        newPos = (n[0][0] - rot_px, n[0][1] - rot_py, n[0][2] - rot_pz, tuple(basisVectors))
+                        if newPos not in neighborTilePositions:
+                            neighborTilePositions.append(newPos)
+
+    print(f"neighborTilePositions[0]: {neighborTilePositions[0]}")
+    print(f"neighborTilePositions[1]: {neighborTilePositions[1]}")
+    print(f"neighborTilePositions[2]: {neighborTilePositions[2]}")
+    print(f"neighborTilePositions[3]: {neighborTilePositions[3]}")
+    print(f"neighborTilePositions[4]: {neighborTilePositions[4]}")
+    print(f"neighborTilePositions[5]: {neighborTilePositions[5]}")
+    print("neighborTilePositions[6]: ...")
+    print(f"Nr neighborTilePositions: {len(neighborTilePositions)}")
+
+
+    return neighborTilePositions
+
+def generatePyramidsFromTransform(pyramids, transX, transY, transZ, basisVectors):
+    newPyramids = []
+
+    #print(f"in generatePyramidsFromTransform(): pyramids: {pyramids}")
+    #print(f"in generatePyramidsFromTransform(): x: {transX}, y: {transY}, z: {transZ}")
+    #print(f"in generatePyramidsFromTransform(): basisVectors: {basisVectors}")
+
+    bx, by, bz = basisVectors[0], basisVectors[1], basisVectors[2]
+
+    for (pos, pyr) in pyramids:
+        x, y, z = pos
+        px, py, pz = pyr
+        #print(f"pos: {pos}, pyr: {pyr}")
+
+        new_x = x * bx[0] + y * by[0] + z * bz[0]
+        new_y = x * bx[1] + y * by[1] + z * bz[1]
+        new_z = x * bx[2] + y * by[2] + z * bz[2]
+
+        new_px = px * bx[0] + py * by[0] + pz * bz[0]
+        new_py = px * bx[1] + py * by[1] + pz * bz[1]
+        new_pz = px * bx[2] + py * by[2] + pz * bz[2]
+
+        new_pos = (transX + new_x, transY + new_y, transZ + new_z)
+        new_pyr = (new_px, new_py, new_pz)
+
+        newPyramids.append((new_pos, new_pyr))
+        #print(f"new_pos: {new_pos}, new_pyr: {new_pyr}")
+
+    return newPyramids
+
+def get_face_neighbor_candidates(p):
+    allPyramids = []
+    allPyramids.append((1, 0, 0))
+    allPyramids.append((-1, 0, 0))
+    allPyramids.append((0, 1, 0))
+    allPyramids.append((0, -1, 0))
+    allPyramids.append((0, 0, 1))
+    allPyramids.append((0, 0, -1))
+
+    candidates = []
+    print(f"in get_face_neighbor_candidates(): p: {p}")
+    (pos, pyr) = p
+    
+    neg_pyr = tuple(-x for x in pyr)
+
+    for op in allPyramids:
+        if op != pyr and op != neg_pyr:
+            candidates.append((pos, op))
+
+    new_pos = (pos[0] + pyr[0], pos[1] + pyr[1], pos[2] + pyr[2])
+    candidates.append((new_pos, neg_pyr))
     return candidates
 
 class GenNode:
-    def __init__(self, placement, existing_pyramids=None):
+    def __init__(self, placement, ExistingPyramids=None):
         self.placement = placement
-        if existing_pyramids:
-            self.pyramids = list(existing_pyramids)
+        if ExistingPyramids:
+            self.pyramids = list(ExistingPyramids)
             if placement not in self.pyramids:
+                print(f"adding placement to pyramids, placement. {placement}")
                 self.pyramids.append(placement)
         else:
+            print(f"setting pyramids to placement: {placement}")
             self.pyramids = [placement]
         self.face_neighbors = []
 
-    def calculate_face_neighbors(self):
+    def calculateFaceNeighbors(self):
         candidates = []
         for p in self.pyramids:
+            print(f"in calculateFaceNeighbors(): p: {p}")
             candidates.extend(get_face_neighbor_candidates(p))
-        
+
         self.face_neighbors = []
         pyr_set = set(self.pyramids)
         seen_candidates = set()
-        
+
         for f in candidates:
             if f not in pyr_set and f not in seen_candidates:
                 self.face_neighbors.append(f)
@@ -96,580 +479,39 @@ class GenNode:
                 return True
         return False
 
-def cluster_is_new(nodes_to_compare, new_pyramids):
+def cluster_is_new(nodesToCompareTo, newPyramidsToTest):
     # Test if new cluster is rotation of previous cluster
-    for node_to_compare in nodes_to_compare:
-        if len(node_to_compare.pyramids) != len(new_pyramids):
+    clusterIsNew = True
+
+    for node_to_compare in nodesToCompareTo:
+        if len(node_to_compare.pyramids) != len(newPyramidsToTest):
             print("ERROR different count!!!")
             continue
-            
-        # Try to map every pyramid in new_pyramids to the first pyramid of node_to_compare
-        anchor = node_to_compare.pyramids[0]
-        anchor_pos = (anchor[0], anchor[1], anchor[2])
-        
-        for t in new_pyramids:
-            transformed_new = transform_pyramids(new_pyramids, t, anchor)
-            
-            # 4 rotations around pyramid axis
-            axis = 0
-            if anchor[3] == 0 or anchor[3] == 1: axis = 0
-            elif anchor[3] == 2 or anchor[3] == 3: axis = 1
-            elif anchor[3] == 4 or anchor[3] == 5: axis = 2
-            
-            for r in range(4):
-                check_pyramids = transformed_new
-                if r == 1:
-                    check_pyramids = rotatePyramids(transformed_new, axis, True, anchor_pos)
-                elif r == 2:
-                    check_pyramids = rotatePyramids(rotatePyramids(transformed_new, axis, True, anchor_pos), axis, True, anchor_pos)
-                elif r == 3:
-                    check_pyramids = rotatePyramids(transformed_new, axis, False, anchor_pos)
+    
+    for nodeToCompareTo in nodesToCompareTo:
+        for t in newPyramidsToTest:
+            for r in range(4):            
+                transformedNewPyramids, _ = transformPyramids(newPyramidsToTest, t, nodeToCompareTo.pyramids[0], r)
                 
-                # Check equality
                 difference = False
-                compare_set = set(node_to_compare.pyramids)
-                for pt in check_pyramids:
-                    if pt not in compare_set:
-                        difference = True
-                        break
-                
+                if any(p not in nodeToCompareTo.pyramids for p in transformedNewPyramids):
+                    difference = True
+
                 if not difference:
-                    return False # Found a match, so it is NOT new
-                    
-    return True
-
-def transform_pyramids(pyramids, start_p, end_p, transformSteps = None):
-    if transformSteps is None:
-        transformSteps = []
-    
-    diff = sub_int3((end_p[0], end_p[1], end_p[2]), (start_p[0], start_p[1], start_p[2]))
-    from_pyr = start_p[3]
-    to_pyr = end_p[3]
-    from_pos = (start_p[0], start_p[1], start_p[2])
-    
-    rotated_pyramids = []
-    
-    # Logic from C# transformPyramids switch
-    if from_pyr == 0:
-        if to_pyr == 0: 
-            rotated_pyramids = list(pyramids)
-        elif to_pyr == 1: 
-            rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 1, True, from_pos), 1, True, from_pos)
-            transformSteps.append((1, True, from_pos))
-            transformSteps.append((1, True, from_pos))
-        elif to_pyr == 2: 
-            rotated_pyramids = rotatePyramids(pyramids, 2, False, from_pos)
-            transformSteps.append((2, False, from_pos))
-        elif to_pyr == 3: 
-            rotated_pyramids = rotatePyramids(pyramids, 2, True, from_pos)
-            transformSteps.append((2, True, from_pos))
-        elif to_pyr == 4: 
-            rotated_pyramids = rotatePyramids(pyramids, 1, True, from_pos)
-            transformSteps.append((1, True, from_pos))
-        elif to_pyr == 5: 
-            rotated_pyramids = rotatePyramids(pyramids, 1, False, from_pos)
-            transformSteps.append((1, False, from_pos))
-    elif from_pyr == 1:
-        if to_pyr == 0: 
-            rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 1, True, from_pos), 1, True, from_pos)
-            transformSteps.append((1, True, from_pos))
-            transformSteps.append((1, True, from_pos))
-        elif to_pyr == 1:
-            rotated_pyramids = list(pyramids)
-        elif to_pyr == 2: 
-            rotated_pyramids = rotatePyramids(pyramids, 2, True, from_pos)
-            transformSteps.append((2, True, from_pos))
-        elif to_pyr == 3: 
-            rotated_pyramids = rotatePyramids(pyramids, 2, False, from_pos)
-            transformSteps.append((2, False, from_pos))
-        elif to_pyr == 4: 
-            rotated_pyramids = rotatePyramids(pyramids, 1, False, from_pos)
-            transformSteps.append((1, False, from_pos))
-        elif to_pyr == 5: 
-            rotated_pyramids = rotatePyramids(pyramids, 1, True, from_pos)
-            transformSteps.append((1, True, from_pos))
-    elif from_pyr == 2:
-        if to_pyr == 0: 
-            rotated_pyramids = rotatePyramids(pyramids, 2, True, from_pos)
-            transformSteps.append((2, True, from_pos))
-        elif to_pyr == 1: 
-            rotated_pyramids = rotatePyramids(pyramids, 2, False, from_pos)
-            transformSteps.append((2, False, from_pos))
-        elif to_pyr == 2: 
-            rotated_pyramids = list(pyramids)
-        elif to_pyr == 3: 
-            rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 0, True, from_pos), 0, True, from_pos)
-            transformSteps.append((0, True, from_pos))
-            transformSteps.append((0, True, from_pos))
-        elif to_pyr == 4: 
-            rotated_pyramids = rotatePyramids(pyramids, 0, False, from_pos)
-            transformSteps.append((0, False, from_pos))
-        elif to_pyr == 5: 
-            rotated_pyramids = rotatePyramids(pyramids, 0, True, from_pos)
-            transformSteps.append((0, True, from_pos))
-    elif from_pyr == 3:
-        if to_pyr == 0: 
-            rotated_pyramids = rotatePyramids(pyramids, 2, False, from_pos)
-            transformSteps.append((2, False, from_pos))
-        elif to_pyr == 1: 
-            rotated_pyramids = rotatePyramids(pyramids, 2, True, from_pos)
-            transformSteps.append((2, True, from_pos))
-        elif to_pyr == 2: 
-            rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 2, True, from_pos), 2, True, from_pos)
-            transformSteps.append((2, True, from_pos))
-            transformSteps.append((2, True, from_pos))
-        elif to_pyr == 3: 
-            rotated_pyramids = list(pyramids)
-        elif to_pyr == 4: 
-            rotated_pyramids = rotatePyramids(pyramids, 0, True, from_pos)
-            transformSteps.append((0, True, from_pos))
-        elif to_pyr == 5: 
-            rotated_pyramids = rotatePyramids(pyramids, 0, False, from_pos)
-            transformSteps.append((0, False, from_pos))
-    elif from_pyr == 4:
-        if to_pyr == 0: 
-            rotated_pyramids = rotatePyramids(pyramids, 1, False, from_pos)
-            transformSteps.append((1, False, from_pos))
-        elif to_pyr == 1: 
-            rotated_pyramids = rotatePyramids(pyramids, 1, True, from_pos)
-            transformSteps.append((1, True, from_pos))
-        elif to_pyr == 2: 
-            rotated_pyramids = rotatePyramids(pyramids, 0, True, from_pos)
-            transformSteps.append((0, True, from_pos))
-        elif to_pyr == 3: 
-            rotated_pyramids = rotatePyramids(pyramids, 0, False, from_pos)
-            transformSteps.append((0, False, from_pos))
-        elif to_pyr == 4: rotated_pyramids = list(pyramids)
-        elif to_pyr == 5: 
-            rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 1, True, from_pos), 1, True, from_pos)
-            transformSteps.append((1, True, from_pos))
-            transformSteps.append((1, True, from_pos))
-    elif from_pyr == 5:
-        if to_pyr == 0: 
-            rotated_pyramids = rotatePyramids(pyramids, 1, True, from_pos)
-            transformSteps.append((1, True, from_pos))
-        elif to_pyr == 1: 
-            rotated_pyramids = rotatePyramids(pyramids, 1, False, from_pos)
-            transformSteps.append((1, False, from_pos))
-        elif to_pyr == 2: 
-            rotated_pyramids = rotatePyramids(pyramids, 0, False, from_pos)
-            transformSteps.append((0, False, from_pos))
-        elif to_pyr == 3: 
-            rotated_pyramids = rotatePyramids(pyramids, 0, True, from_pos)
-            transformSteps.append((0, True, from_pos))
-        elif to_pyr == 4: 
-            rotated_pyramids = rotatePyramids(rotatePyramids(pyramids, 0, True, from_pos), 0, True, from_pos)
-            transformSteps.append((0, True, from_pos))
-            transformSteps.append((0, True, from_pos))
-        elif to_pyr == 5: rotated_pyramids = list(pyramids)
-
-    transformed = []
-    for p in rotated_pyramids:
-        new_pos = add_int3((p[0], p[1], p[2]), diff)
-        transformed.append((new_pos[0], new_pos[1], new_pos[2], p[3]))
-    return transformed
-
-def add_int3(a, b):
-    return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
-
-def sub_int3(a, b):
-    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
-
-
-# Pyramid rotation mappings
-ROT_MAP_0_TRUE = {0: 0, 1: 1, 2: 5, 3: 4, 4: 2, 5: 3}
-ROT_MAP_0_FALSE = {0: 0, 1: 1, 2: 4, 3: 5, 4: 3, 5: 2}
-ROT_MAP_1_TRUE = {0: 4, 1: 5, 2: 2, 3: 3, 4: 1, 5: 0}
-ROT_MAP_1_FALSE = {0: 5, 1: 4, 2: 2, 3: 3, 4: 0, 5: 1}
-ROT_MAP_2_TRUE = {0: 3, 1: 2, 2: 0, 3: 1, 4: 4, 5: 5}
-ROT_MAP_2_FALSE = {0: 2, 1: 3, 2: 1, 3: 0, 4: 4, 5: 5}
-
-def rotatePyramids(
-    pyr_coords: List[PyramidCoord], 
-    axis: int, 
-    direction: bool, 
-    center: Position
-) -> List[PyramidCoord]:
-    """
-    Rotates a list of pyramid coordinates around a center point.
-
-    Args:
-        pyr_coords: A list of pyramid coordinates.
-        axis: The axis of rotation (0 for x, 1 for y, 2 for z).
-        direction: The direction of rotation (True for positive, False for negative).
-        center: The center of rotation as a tuple (x, y, z).
-
-    Returns:
-        A new list of rotated pyramid coordinates.
-    """
-    new_coords = []
-    center_x, center_y, center_z = center
-
-    for p_x, p_y, p_z, p_pyr in pyr_coords:
-        new_pyr, new_x, new_y, new_z = -1, -1, -1, -1
-
-        if axis == 0:
-            if direction:  # x -> x, y -> -z, z -> y
-                new_pyr = ROT_MAP_0_TRUE[p_pyr]
-                new_x = p_x
-                new_y = center_y + p_z - center_z
-                new_z = center_z - (p_y - center_y)
-            else:  # x -> x, y -> z, z -> -y
-                new_pyr = ROT_MAP_0_FALSE[p_pyr]
-                new_x = p_x
-                new_y = center_y - (p_z - center_z)
-                new_z = center_z + (p_y - center_y)
-        elif axis == 1:
-            if direction:  # x -> z, y -> y, z -> -x
-                new_pyr = ROT_MAP_1_TRUE[p_pyr]
-                new_x = center_x - (p_z - center_z)
-                new_y = p_y
-                new_z = center_z + (p_x - center_x)
-            else:  # x -> -z, y -> y, z -> x
-                new_pyr = ROT_MAP_1_FALSE[p_pyr]
-                new_x = center_x + (p_z - center_z)
-                new_y = p_y
-                new_z = center_z - (p_x - center_x)
-        elif axis == 2:
-            if direction:  # x -> -y, y -> x, z -> z
-                new_pyr = ROT_MAP_2_TRUE[p_pyr]
-                new_x = center_x + (p_y - center_y)
-                new_y = center_y - (p_x - center_x)
-                new_z = p_z
-            else:  # x -> y, y -> -x, z -> z
-                new_pyr = ROT_MAP_2_FALSE[p_pyr]
-                new_x = center_x - (p_y - center_y)
-                new_y = center_y + (p_x - center_x)
-                new_z = p_z
-        
-        new_coords.append((new_x, new_y, new_z, new_pyr))
-
-    return new_coords
-
-def get_pyramid_vertices(x, y, z, p):
-    vertices = set()
-    vertices.add((x, y, z))
-    if p == 0: # +x
-        base_x = x + 0.5
-        for dy in (-0.5, 0.5):
-            for dz in (-0.5, 0.5):
-                vertices.add((base_x, y + dy, z + dz))
-    elif p == 1: # -x
-        base_x = x - 0.5
-        for dy in (-0.5, 0.5):
-            for dz in (-0.5, 0.5):
-                vertices.add((base_x, y + dy, z + dz))
-    elif p == 2: # +y
-        base_y = y + 0.5
-        for dx in (-0.5, 0.5):
-            for dz in (-0.5, 0.5):
-                vertices.add((x + dx, base_y, z + dz))
-    elif p == 3: # -y
-        base_y = y - 0.5
-        for dx in (-0.5, 0.5):
-            for dz in (-0.5, 0.5):
-                vertices.add((x + dx, base_y, z + dz))
-    elif p == 4: # +z
-        base_z = z + 0.5
-        for dx in (-0.5, 0.5):
-            for dy in (-0.5, 0.5):
-                vertices.add((x + dx, y + dy, base_z))
-    elif p == 5: # -z
-        base_z = z - 0.5
-        for dx in (-0.5, 0.5):
-            for dy in (-0.5, 0.5):
-                vertices.add((x + dx, y + dy, base_z))
-    return vertices
-
-
-def get_base_neighbors_case0():
-    target = get_pyramid_vertices(0, 0, 0, 0)
-    neighbors = []
-    for x in range(2):
-        for y in range(-1, 2):
-            for z in range(-1, 2):
-                for p in range(6):
-                    if x == 0 and y == 0 and z == 0 and p == 0:
-                        continue
-                    if not target.isdisjoint(get_pyramid_vertices(x, y, z, p)):
-                        neighbors.append((x, y, z, p))
-
-    # print("Base Neighbors:")
-    # for p in neighbors:
-    #     print(p)
-    return neighbors
-
-BASE_NEIGHBORS_CASE0 = get_base_neighbors_case0()
-
-def calculate_all_neighbor_pyramids(pyramid_cluster: Set[PyramidCoord]) -> Set[PyramidCoord]:
-    """
-    Calculates all neighbor pyramids for a given cluster of pyramids.
-
-    Args:
-        pyramid_cluster: A set of pyramid coordinates.
-
-    Returns:
-        A set of neighbor pyramid coordinates.
-    """
-    pyramid_surround: Set[PyramidCoord] = set()
-
-    base_neighbors_case0 = BASE_NEIGHBORS_CASE0
-    
-
-
-    for p_x, p_y, p_z, p_pyr in pyramid_cluster:
-        p_pos = (p_x, p_y, p_z)
-        
-        neighbor_pyramids_case0 = [(p_x + x, p_y + y, p_z + z, pyr) for x, y, z, pyr in base_neighbors_case0]
-
-        if p_pyr == 0:
-            for pc in neighbor_pyramids_case0:
-                if pc not in pyramid_surround and pc not in pyramid_cluster:
-                    pyramid_surround.add(pc)
-        elif p_pyr == 1:
-            neighbor_pyramids_case1 = rotatePyramids(rotatePyramids(neighbor_pyramids_case0, 1, True, p_pos), 1, True, p_pos)
-            for pc in neighbor_pyramids_case1:
-                if pc not in pyramid_surround and pc not in pyramid_cluster:
-                    pyramid_surround.add(pc)
-        elif p_pyr == 2:
-            neighbor_pyramids_case2 = rotatePyramids(neighbor_pyramids_case0, 2, False, p_pos)
-            for pc in neighbor_pyramids_case2:
-                if pc not in pyramid_surround and pc not in pyramid_cluster:
-                    pyramid_surround.add(pc)
-        elif p_pyr == 3:
-            neighbor_pyramids_case3 = rotatePyramids(neighbor_pyramids_case0, 2, True, p_pos)
-            for pc in neighbor_pyramids_case3:
-                if pc not in pyramid_surround and pc not in pyramid_cluster:
-                    pyramid_surround.add(pc)
-        elif p_pyr == 4:
-            neighbor_pyramids_case4 = rotatePyramids(neighbor_pyramids_case0, 1, True, p_pos)
-            for pc in neighbor_pyramids_case4:
-                if pc not in pyramid_surround and pc not in pyramid_cluster:
-                    pyramid_surround.add(pc)
-        elif p_pyr == 5:
-            neighbor_pyramids_case5 = rotatePyramids(neighbor_pyramids_case0, 1, False, p_pos)
-            for pc in neighbor_pyramids_case5:
-                if pc not in pyramid_surround and pc not in pyramid_cluster:
-                    pyramid_surround.add(pc)
-
-    for p_x, p_y, p_z, p_pyr in pyramid_cluster:
-        for i in range(1, 6):
-            neighbor_pyramid = (p_x, p_y, p_z, (p_pyr + i) % 6)
-            if neighbor_pyramid not in pyramid_cluster:
-                pyramid_surround.add(neighbor_pyramid)
-    return pyramid_surround
-
-def get_basis_rotation(axis, direction):
-    """Returns a function that rotates a vector (x,y,z) according to the axis/direction."""
-    # Logic matches rotatePyramids implementation
-    if axis == 0:
-        if direction: return lambda v: (v[0], v[2], -v[1]) # x->x, y->z, z->-y (Code logic)
-        else: return lambda v: (v[0], -v[2], v[1])        # x->x, y->-z, z->y
-    elif axis == 1:
-        if direction: return lambda v: (-v[2], v[1], v[0]) # x->-z, y->y, z->x
-        else: return lambda v: (v[2], v[1], -v[0])         # x->z, y->y, z->-x
-    elif axis == 2:
-        if direction: return lambda v: (v[1], -v[0], v[2]) # x->y, y->-x, z->z
-        else: return lambda v: (-v[1], v[0], v[2])         # x->-y, y->x, z->z
-    return lambda v: v
-
-CANONICAL_BASES = {}
-
-def init_canonical_bases():
-    """Precomputes the basis vectors for all 24 orientations."""
-    if CANONICAL_BASES: return
-
-    def sim_rot(basis, axis, direction):
-        rot = get_basis_rotation(axis, direction)
-        return (rot(basis[0]), rot(basis[1]))
-
-    for r in range(24):
-        # Start with Identity Basis: X=(1,0,0), Y=(0,1,0)
-        basis = ((1, 0, 0), (0, 1, 0))
-        
-        # Apply rotations corresponding to create_rotated_pyramid_coords logic
-        if r == 0: pass
-        elif r == 1: basis = sim_rot(basis, 1, True)
-        elif r == 2: basis = sim_rot(sim_rot(basis, 1, True), 1, True)
-        elif r == 3: basis = sim_rot(basis, 1, False)
-        
-        elif r == 4: basis = sim_rot(basis, 2, False)
-        elif r == 5: basis = sim_rot(sim_rot(basis, 2, False), 1, True)
-        elif r == 6: basis = sim_rot(sim_rot(sim_rot(basis, 2, False), 1, True), 1, True)
-        elif r == 7: basis = sim_rot(sim_rot(basis, 2, False), 1, False)
-        
-        elif r == 8: basis = sim_rot(sim_rot(basis, 0, True), 0, True)
-        elif r == 9: basis = sim_rot(sim_rot(sim_rot(basis, 0, True), 0, True), 1, True)
-        elif r == 10: basis = sim_rot(sim_rot(sim_rot(sim_rot(basis, 0, True), 0, True), 1, True), 1, True)
-        elif r == 11: basis = sim_rot(sim_rot(sim_rot(basis, 0, True), 0, True), 1, False)
-        
-        elif r == 12: basis = sim_rot(basis, 2, True)
-        elif r == 13: basis = sim_rot(sim_rot(basis, 2, True), 1, True)
-        elif r == 14: basis = sim_rot(sim_rot(sim_rot(basis, 2, True), 1, True), 1, True)
-        elif r == 15: basis = sim_rot(sim_rot(basis, 2, True), 1, False)
-        
-        elif r == 16: basis = sim_rot(basis, 0, True)
-        elif r == 17: basis = sim_rot(sim_rot(basis, 0, True), 1, True)
-        elif r == 18: basis = sim_rot(sim_rot(sim_rot(basis, 0, True), 1, True), 1, True)
-        elif r == 19: basis = sim_rot(sim_rot(basis, 0, True), 1, False)
-        
-        elif r == 20: basis = sim_rot(basis, 0, False)
-        elif r == 21: basis = sim_rot(sim_rot(basis, 0, False), 1, True)
-        elif r == 22: basis = sim_rot(sim_rot(sim_rot(basis, 0, False), 1, True), 1, True)
-        elif r == 23: basis = sim_rot(sim_rot(basis, 0, False), 1, False)
-        
-        CANONICAL_BASES[basis] = r
-
-def get_orientation_from_steps(steps):
-    """Calculates the orientation index (0-23) from a list of rotation steps."""
-    if not CANONICAL_BASES: init_canonical_bases()
-    
-    # Start with Identity
-    x_vec = (1, 0, 0)
-    y_vec = (0, 1, 0)
-    
-    for axis, direction, _ in steps:
-        rot = get_basis_rotation(axis, direction)
-        x_vec = rot(x_vec)
-        y_vec = rot(y_vec)
-    
-    return CANONICAL_BASES.get((x_vec, y_vec), -1)
-
-def calculate_all_neighbor_tile_positions(surroundPyramids, tilePyramids, forbiddenPyramids=None):
-    neighborTilePositions = set()
-
-    # Ensure canonical bases are initialized
-    init_canonical_bases()
-
-    for p in surroundPyramids:
-        for t in tilePyramids:
-            # rotate every tile pyramid to every position in surroundPyramids
-            transformSteps = []
-            # Pass transformSteps to capture the rotations
-            transformedPyramids = transform_pyramids(tilePyramids, t, p, transformSteps)
+                    clusterIsNew = False
+                    break
             
-            # Determine the axis for the secondary rotation loop
-            axis = 0
-            if p[3] == 0 or p[3] == 1: axis = 0
-            elif p[3] == 2 or p[3] == 3: axis = 1
-            elif p[3] == 4 or p[3] == 5: axis = 2
+            if not clusterIsNew:
+                break
+        
+        if not clusterIsNew:
+            break
+        
+    return clusterIsNew
             
-            # Calculate the position of the new tile (relative to 0,0,0)
-            # diff was calculated in transform_pyramids as end_p - start_p
-            # Since start_p is from the tile at origin, diff is the new center.
-            # diff = sub_int3((p[0], p[1], p[2]), (t[0], t[1], t[2]))
+
             
-            for rot in range(4):
-                # Create a copy of steps for this specific rotation
-                current_steps = list(transformSteps)
-                
-                rotatedPyramids = []
-                if rot == 0:
-                    rotatedPyramids = transformedPyramids
-                elif rot == 1:
-                    rotatedPyramids = rotatePyramids(transformedPyramids, axis, True, (p[0], p[1], p[2]))
-                    current_steps.append((axis, True, None))
-                elif rot == 2:
-                    rotatedPyramids = rotatePyramids(rotatePyramids(transformedPyramids, axis, True, (p[0], p[1], p[2])), axis, True, (p[0], p[1], p[2]))
-                    current_steps.append((axis, True, None))
-                    current_steps.append((axis, True, None))
-                elif rot == 3:
-                    rotatedPyramids = rotatePyramids(transformedPyramids, axis, False, (p[0], p[1], p[2]))
-                    current_steps.append((axis, False, None))
-
-                # Check if this placement overlaps with the original tile
-                if any(tp in tilePyramids for tp in rotatedPyramids):
-                    continue
-
-                if forbiddenPyramids and any(tp in forbiddenPyramids for tp in rotatedPyramids):
-                    continue
-
-
-                # Calculate orientation index
-                orientation = get_orientation_from_steps(current_steps)
-                
-                ref_shape = create_rotated_pyramid_coords(orientation, tilePyramids, (0,0,0))
-                real_pos = sub_int3(rotatedPyramids[0], ref_shape[0])
-
-                # Append (Position, Orientation)
-                # Position is (x, y, z), Orientation is int 0-23
-                neighborTilePositions.add((real_pos, orientation))
-
-    return list(neighborTilePositions)
-    
-def create_rotated_pyramid_coords(r, temp_pyramid_coords, center):
-    
-    #Creates rotated pyramid coordinates based on rotation index r.
-    #
-    #Args:
-    #    r: Rotation index (0-23).
-    #    temp_pyramid_coords: List of tuples (x, y, z, pyramid).
-    #    center: Tuple (cx, cy, cz).
-    #    
-    #Returns:
-    #    List of rotated pyramid coordinates (x, y, z, pyramid).
-    
-    return_pyramid_coords = []
-    
-    if r == 0:
-        return_pyramid_coords = list(temp_pyramid_coords) # +y up 0
-    elif r == 1:
-        return_pyramid_coords = rotatePyramids(temp_pyramid_coords, 1, True, center) # +y up 1
-    elif r == 2:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(temp_pyramid_coords, 1, True, center), 1, True, center) # +y up 2
-    elif r == 3:
-        return_pyramid_coords = rotatePyramids(temp_pyramid_coords, 1, False, center) # +y up 3
         
-    elif r == 4:
-        return_pyramid_coords = rotatePyramids(temp_pyramid_coords, 2, False, center) # +x up 0
-    elif r == 5:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(temp_pyramid_coords, 2, False, center), 1, True, center) # +x up 1
-    elif r == 6:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(rotatePyramids(temp_pyramid_coords, 2, False, center), 1, True, center), 1, True, center) # +x up 2
-    elif r == 7:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(temp_pyramid_coords, 2, False, center), 1, False, center) # +x up 3
-        
-    elif r == 8:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(temp_pyramid_coords, 0, True, center), 0, True, center) # -y up 0
-    elif r == 9:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(rotatePyramids(temp_pyramid_coords, 0, True, center), 0, True, center), 1, True, center) # -y up 1
-    elif r == 10:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(rotatePyramids(rotatePyramids(temp_pyramid_coords, 0, True, center), 0, True, center), 1, True, center), 1, True, center) # -y up 2
-    elif r == 11:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(rotatePyramids(temp_pyramid_coords, 0, True, center), 0, True, center), 1, False, center) # -y up 3
-        
-    elif r == 12:
-        return_pyramid_coords = rotatePyramids(temp_pyramid_coords, 2, True, center) # -x up 0
-    elif r == 13:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(temp_pyramid_coords, 2, True, center), 1, True, center) # -x up 1
-    elif r == 14:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(rotatePyramids(temp_pyramid_coords, 2, True, center), 1, True, center), 1, True, center) # -x up 2
-    elif r == 15:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(temp_pyramid_coords, 2, True, center), 1, False, center) # -x up 3
-        
-    elif r == 16:
-        return_pyramid_coords = rotatePyramids(temp_pyramid_coords, 0, True, center) # +z up 0
-    elif r == 17:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(temp_pyramid_coords, 0, True, center), 1, True, center) # +z up 1
-    elif r == 18:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(rotatePyramids(temp_pyramid_coords, 0, True, center), 1, True, center), 1, True, center) # +z up 2
-    elif r == 19:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(temp_pyramid_coords, 0, True, center), 1, False, center) # +z up 3
-        
-    elif r == 20:
-        return_pyramid_coords = rotatePyramids(temp_pyramid_coords, 0, False, center) # -z up 0
-    elif r == 21:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(temp_pyramid_coords, 0, False, center), 1, True, center) # -z up 1
-    elif r == 22:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(rotatePyramids(temp_pyramid_coords, 0, False, center), 1, True, center), 1, True, center) # -z up 2
-    elif r == 23:
-        return_pyramid_coords = rotatePyramids(rotatePyramids(temp_pyramid_coords, 0, False, center), 1, False, center) # -z up 3
-        
-    else:
-        return_pyramid_coords = list(temp_pyramid_coords)
-        
-    return return_pyramid_coords
-
 
 def generate_polypyramids(n):
     """Generates poly-pyramids of size n using BFS."""
@@ -678,8 +520,20 @@ def generate_polypyramids(n):
     
     # Layer 0 (Size 1)
     layer0 = []
-    root = GenNode((0,0,0,0))
-    root.calculate_face_neighbors()
+    print("Generating root node...")
+    rootPlacement = ((0, 0, 0), (1, 0, 0))
+    (testPos, testPyr) = rootPlacement
+    print(f"testPos: {testPos}")
+    print(f"testPyr: {testPyr}")
+    root = GenNode(rootPlacement)
+    print(f"test root placement: {root.placement}")
+    rootPos = root.placement[0]
+    rootPyr = root.placement[1]
+
+    print(f"root placement pos: ({rootPos[0]}, {rootPos[1]}, {rootPos[2]})")
+    print(f"root placement pyr: ({rootPyr[0]}, {rootPyr[1]}, {rootPyr[2]})")
+    print(f"root pyramids: {root.pyramids}")
+    root.calculateFaceNeighbors()
     layer0.append(root)
     nodes.append(layer0)
     
@@ -694,13 +548,15 @@ def generate_polypyramids(n):
                 new_pyramids.append(p)
                 
                 if not current_layer_nodes:
+                    print(f"creating node: placement: {p}, existingPyramids: {node.pyramids}, newLayer")
                     new_node = GenNode(p, node.pyramids)
-                    new_node.calculate_face_neighbors()
+                    new_node.calculateFaceNeighbors()
                     current_layer_nodes.append(new_node)
                 else:
                     if cluster_is_new(current_layer_nodes, new_pyramids):
+                        print(f"creating node: placement: {p}, existingPyramids: {node.pyramids}")
                         new_node = GenNode(p, node.pyramids)
-                        new_node.calculate_face_neighbors()
+                        new_node.calculateFaceNeighbors()
                         if not new_node.detect_holes():
                             current_layer_nodes.append(new_node)
                             
@@ -708,24 +564,54 @@ def generate_polypyramids(n):
         print(f"Layer {layer} (Size {layer+1}) generated {len(current_layer_nodes)} shapes.")
         
     return [n.pyramids for n in nodes[n-1]]
+#
+#def cluster_is_new(nodes_to_compare, new_pyramids):
+#    # Test if new cluster is rotation of previous cluster
+#    for node_to_compare in nodes_to_compare:
+#        if len(node_to_compare.pyramids) != len(new_pyramids):
+#            print("ERROR different count!!!")
+#            continue
+#            
+#        # Try to map every pyramid in new_pyramids to the first pyramid of node_to_compare
+#        anchor = node_to_compare.pyramids[0]
+#        anchor_pos = (anchor[0], anchor[1], anchor[2])
+#        
+#        for t in new_pyramids:
+#            transformed_new = transform_pyramids(new_pyramids, t, anchor)
+#            
+#            # 4 rotations around pyramid axis
+#            axis = 0
+#            if anchor[3] == 0 or anchor[3] == 1: axis = 0
+#            elif anchor[3] == 2 or anchor[3] == 3: axis = 1
+#            elif anchor[3] == 4 or anchor[3] == 5: axis = 2
+#            
+#            for r in range(4):
+#                check_pyramids = transformed_new
+#                if r == 1:
+#                    check_pyramids = rotatePyramids(transformed_new, axis, True, anchor_pos)
+#                elif r == 2:
+#                    check_pyramids = rotatePyramids(rotatePyramids(transformed_new, axis, True, anchor_pos), axis, True, anchor_pos)
+#                elif r == 3:
+#                    check_pyramids = rotatePyramids(transformed_new, axis, False, anchor_pos)
+#                
+#                # Check equality
+#                difference = False
+#                compare_set = set(node_to_compare.pyramids)
+#                for pt in check_pyramids:
+#                    if pt not in compare_set:
+#                        difference = True
+#                        break
+#                
+#                if not difference:
+#                    return False # Found a match, so it is NOT new
+#                    
+#    return True
 
-def get_transformed_pyramids(base_shape, position, orientation):
-    rotated = create_rotated_pyramid_coords(orientation, base_shape, (0,0,0))
-    transformed = []
-    for px, py, pz, pyr in rotated:
-        transformed.append((px + position[0], py + position[1], pz + position[2], pyr))
-    return transformed
-
-def solve_monolithic(shape_index, search_surrounds, base_shape, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, previous_solution=None):
-    
+def solve_monolithic(search_surrounds, basePyramids, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, surroundPyramidsLayer1, surroundPyramidsLayer2):
     model = cp_model.CpModel()
 
-    # 1. Setup Grid and Center
-    center_cells = set(base_shape)
+    baseSet = set(basePyramids)
 
-    center_neighbors_set = calculate_all_neighbor_pyramids(center_cells)
-    
-    # 2. Generate Tile Variables
     s1_placements = {}
     s2_placements = {}
     s3_placements = {}
@@ -733,92 +619,98 @@ def solve_monolithic(shape_index, search_surrounds, base_shape, neighborTilePosi
     cell_covered_by_s1 = defaultdict(list)
     cell_covered_by_s2 = defaultdict(list)
     cell_covered_by_s3 = defaultdict(list)
-    
-    # Create S1 variables
-    for (pos, rot) in neighborTilePositionsS1:
-        cells = get_transformed_pyramids(base_shape, pos, rot)
-        s1_var = model.NewBoolVar(f's1_{pos}_{rot}')
-        s1_placements[(pos, rot)] = s1_var
+
+    i = 0
+    log = 10
+
+    # S1 variables
+    for pos in neighborTilePositionsS1:
+        name = f's1_{pos}'.replace(' ', '')
+        s1_var = model.NewBoolVar(name)
+        if i < log:
+            print(f"generated variable for S1: {name}")
+            #print(f"pos[0]: {pos[0]}")
+            #print(f"pos[1]: {pos[1]}")
+            #print(f"pos[2]: {pos[2]}")
+            #print(f"pos[3]: {pos[3]}")
+            i += 1
+        if i == log:
+            print("...")
+            i += 1
+        s1_placements[pos] = s1_var
+
+        
+
+        cells = generatePyramidsFromTransform(basePyramids, pos[0], pos[1], pos[2], pos[3])
         for c in cells:
             cell_covered_by_s1[c].append(s1_var)
 
+    i = 0
+    log = 10
     if search_surrounds >= 2:
-        # Create S2 variables
-        for (pos, rot) in neighborTilePositionsS2:
-            cells = get_transformed_pyramids(base_shape, pos, rot)
-            s2_var = model.NewBoolVar(f's2_{pos}_{rot}')
-            s2_placements[(pos, rot)] = s2_var
+        # S2 variables
+        for pos in neighborTilePositionsS2:
+            name = f's2_{pos}'.replace(' ', '')
+            s2_var = model.NewBoolVar(name)
+            if i < log:
+                print(f"generated variable for S2: {name}")
+                i += 1
+            if i == log:
+                print("...")
+                i += 1
+            s2_placements[pos] = s2_var
+
+            cells = generatePyramidsFromTransform(basePyramids, pos[0], pos[1], pos[2], pos[3])
             for c in cells:
                 cell_covered_by_s2[c].append(s2_var)
-    
+
+    i = 0
+    log = 10
     if search_surrounds >= 3:
-        # Create S3 variables
-        for (pos, rot) in neighborTilePositionsS3:
-            cells = get_transformed_pyramids(base_shape, pos, rot)
-            s3_var = model.NewBoolVar(f's3_{pos}_{rot}')
-            s3_placements[(pos, rot)] = s3_var
+        # S3 variables
+        for pos in neighborTilePositionsS3:
+            name = f's3_{pos}'.replace(' ', '')
+            s3_var = model.NewBoolVar(name)
+            if i < log:
+                print(f"generated variable for S3: {name}")
+                i += 1
+            if i == log:
+                print("...")
+                i += 1
+            s3_placements[pos] = s3_var
+
+            cells = generatePyramidsFromTransform(basePyramids, pos[0], pos[1], pos[2], pos[3])
             for c in cells:
                 cell_covered_by_s3[c].append(s3_var)
 
-    
-
-
-    
-
     # --- Apply Hints from Previous Solution ---
-    if previous_solution:
-        print("Applying hints from previous solution...")
-        if 's1' in previous_solution:
-            for placement_key in previous_solution['s1']:
-                if placement_key in s1_placements:
-                    model.AddHint(s1_placements[placement_key], 1)
-        
-        if search_surrounds >= 2 and 's2' in previous_solution:
-            for placement_key in previous_solution['s2']:
-                if placement_key in s2_placements:
-                    model.AddHint(s2_placements[placement_key], 1)
+    #
+    # TODO...
 
 
-    print("Testing Shape ", end="")
-    if shape_index is not None:
-        print(f"{shape_index}")
-    else:
-        print("")
-    print(f"Pyramids: {base_shape}")
-    print(f"Coronas: {search_surrounds}")
-    print(f"S1 positions: {len(s1_placements)}")
-    if search_surrounds >= 2:
-        print(f"S2 positions: {len(s2_placements)}")
-    if search_surrounds == 3:
-        print(f"S3 positions: {len(s3_placements)}")
-
-
-    #5. Constraints
-    
+    # Constraints
     all_cells = set(cell_covered_by_s1.keys())
     if search_surrounds >= 2:
         all_cells.update(cell_covered_by_s2.keys())
     if search_surrounds >= 3:
         all_cells.update(cell_covered_by_s3.keys())
 
-    # A. Disjointness
+    # A. Disjountness
     # For every cell, sum(s1) + sum(s2) <= 1
     for c in all_cells:
-        if c in center_cells: continue
-        
         s1_cov = cell_covered_by_s1.get(c, [])
         s2_cov = cell_covered_by_s2.get(c, [])
         s3_cov = cell_covered_by_s3.get(c, [])
-        
+
         all_cov = s1_cov + s2_cov + s3_cov
         if len(all_cov) > 1:
             model.Add(sum(all_cov) <= 1)
 
-    print("Generated disjointness constraints.")
+    print("Generated disjountness constraints")
 
     # B. S1 Surrounds Center
     # All neighbors of Center must be covered by S1
-    for c in center_neighbors_set:
+    for c in surroundPyramidsLayer1:
         if c in cell_covered_by_s1:
             model.Add(sum(cell_covered_by_s1[c]) == 1)
         else:
@@ -832,13 +724,13 @@ def solve_monolithic(shape_index, search_surrounds, base_shape, neighborTilePosi
     # Logic: If any neighbor of cell c is covered by S1, then c must be covered by (S1 or S2).
     # This forces S2 to fill all gaps around S1.
     if search_surrounds >= 2:
-        check_set = set(cell_covered_by_s1.keys())
-        check_set.update(calculate_all_neighbor_pyramids(check_set))
+        candidates = set(cell_covered_by_s1.keys())
+        candidates.update(getAllNeighborPyramids(candidates))
 
-        for c in check_set:
-            if c in center_cells: continue
+        for c in candidates:
+            if c in baseSet: continue
 
-            neighbors = calculate_all_neighbor_pyramids({c})
+            neighbors = getAllNeighborPyramids({c})
 
             # Collect all S1 variables from all neighbors
             neighbor_s1_vars = []
@@ -853,179 +745,144 @@ def solve_monolithic(shape_index, search_surrounds, base_shape, neighborTilePosi
             target_literals = cell_covered_by_s1.get(c, []) + cell_covered_by_s2.get(c, [])
             for n_var in neighbor_s1_vars:
                 model.AddBoolOr([n_var.Not()] + target_literals)
-        print("Generated S2 surrounds S1 constraints.")
+        print("Generated surrounds S2 constraints.")
 
-    if search_surrounds == 3:
+    if search_surrounds >= 3:
         # D. S3 Surrounds S2
-        check_set = set(cell_covered_by_s2.keys())
-        check_set.update(calculate_all_neighbor_pyramids(check_set))
+        candidates = set(cell_covered_by_s2.keys())
+        candidates.update(getAllNeighborPyramids(candidates))
 
-        for c in check_set:
-            if c in center_cells: continue
-                
-            neighbors = calculate_all_neighbor_pyramids({c})
-                
+        for c in candidates:
+            if c in baseSet: continue
+
+            neighbors = getAllNeighborPyramids({c})
+
             # Collect all S2 variables from all neighbors
             neighbor_s2_vars = []
             for n in neighbors:
                 neighbor_s2_vars.extend(cell_covered_by_s2.get(n, []))
-                
+
             if not neighbor_s2_vars: continue
-                
+
             # Logic: If any neighbor is S2, then c must be covered by (S1 or S2 or S3).
             target_literals = cell_covered_by_s1.get(c, []) + cell_covered_by_s2.get(c, []) + cell_covered_by_s3.get(c, [])
             for n_var in neighbor_s2_vars:
                 model.AddBoolOr([n_var.Not()] + target_literals)
-        print("Generated S3 surrounds S2 constraints.")
-
+        print("Generated surrounds S3 constraints.")
+    
     print("generated model. Starting solver...")
 
-    # 6. Solve
+    # Solve Model
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 8
     solver.parameters.max_time_in_seconds = 3600
     solver.parameters.log_search_progress = False
-    
+
     print(f"Solving monolithic model for {search_surrounds} corona(s)...")
     status = solver.Solve(model)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print("Solution found!")
-        s1_tiles = [key for key, value in s1_placements.items() if solver.Value(value)] # key: ((x, y, z), rot)
-        if search_surrounds >= 2:
-            s2_tiles = [key for key, value in s2_placements.items() if solver.Value(value)]
-            if search_surrounds == 3:
-                s3_tiles = [key for key, value in s3_placements.items() if solver.Value(value)]
-        
-        with open("all_solutions_heesch1_tile.txt", "a") as f:
-            f.write("--- Monolithic Solution ---\n")
-            f.write("Corona 1:\n")
-            for t in s1_tiles:
-                #print(f"S1: {t}")
-                f.write(f"{t}\n")
-            
-            if search_surrounds >= 2:
-                f.write("Corona 2:\n")
-                for t in s2_tiles:
-                    #print(f"S2: {t}")
-                    f.write(f"{t}\n")
-
-            if search_surrounds == 3:
-                f.write("Corona 3:\n")
-                for t in s3_tiles:
-                    #print(f"S3: {t}")
-                    f.write(f"{t}\n")
-        
-        print(f"Solver Status: {solver.StatusName(status)}")
-        print("Solution Found:")
-        print(f"S1: {s1_tiles}")
-        if search_surrounds >= 2:
-            print(f"S2: {s2_tiles}")
-        if search_surrounds == 3:
-            print(f"S3: {s3_tiles}")
-        print("")
-        
-        # Return the solution dictionary for the next iteration
-        solution_data = {'s1': s1_tiles}
-        if search_surrounds >= 2:
-            solution_data['s2'] = s2_tiles
-        if search_surrounds == 3:
-            solution_data['s3'] = s3_tiles
-        return solution_data
 
     elif status == cp_model.INFEASIBLE:
         print("No solution found: INFEASIBLE. The solver proved no solution exists within the constraints.")
-        print(f"Solver Status: {solver.StatusName(status)}")
-        print("No solution found: INFEASIBLE\n")
-        return None
+
     elif status == cp_model.UNKNOWN:
         print("No solution found: UNKNOWN. The solver reached the time limit (timeout) without finding a solution.")
-        print(f"Solver Status: {solver.StatusName(status)}")
-        print("No solution found: UNKNOWN (Timeout)\n")
-        return None
+    
     else:
         print(f"No solution found. Status: {status}")
-        print(f"Solver Status: {solver.StatusName(status)}")
-        print(f"No solution found. Status: {status}\n")
-        return None
 
+if __name__ == '__main__':   
+    polypyramids = generate_polypyramids(2)
+    for polypyramid in polypyramids:
+        print(f"polypyramid: {polypyramid}")
 
-
-if __name__ == '__main__':
-    log_file = open("heesch_solver.txt", "w")
-    summary_log = open("heesch_solver_summary.txt", "w")
-    summary_log.write("--- Heesch Solver Summary ---\n")
-    summary_log.flush()
     
-    class Tee:
-        def __init__(self, *files):
-            self.files = files
-        def write(self, obj):
-            for f in self.files:
-                f.write(obj)
-                f.flush()
-        def flush(self):
-            for f in self.files:
-                f.flush()
-    sys.stdout = Tee(sys.stdout, log_file, summary_log)
-    sys.stderr = sys.stdout
+
+    neighborPyramidsCase0 = calculateNeighborPyramidsCase0()
+    print(f"Nr neighborPyramidsCase0: {len(neighborPyramidsCase0)}")
+
+    #pyramids = [pyrCoord0, pyrCoord1, pyrCoord2, pyrCoord3, pyrCoord4, pyrCoord5]
+    pyramids = polypyramids[0]
+    print(f"pyramids: {pyramids}")
+    
+    surroundPyramidsLayer1 = list(getAllNeighborPyramids(pyramids))
+    surroundPyramidsLayer2 = list(getAllNeighborPyramids(surroundPyramidsLayer1))
+
+    #print(f"neighborPyramids: {neighborPyramids}")
+
+    exportPyramids(pyramids, "pyramids")
+    #exportPyramids(neighborPyramids, "neighborPyramids") # OK
+
+    neighborPyramidCoverage = [False] * len(surroundPyramidsLayer1)
+
+    overlapError = False
+
+
+    #------ S1 ------
+    neighborTilePositionsS1 = getAllNeighborTilePositions(pyramids, surroundPyramidsLayer1)
+
+    #------ DEBUG -----
+    neighborTilePyramidsS1 = set()
+    for n in neighborTilePositionsS1:
+        pyrs = generatePyramidsFromTransform(pyramids, n[0], n[1], n[2], n[3])
+        if not any(p in surroundPyramidsLayer1 for p in pyrs):
+            print("ERROR: no overlap of tile position and neighborPyrmaids")
+            overlapError = True
+        for p in pyrs:
+            if p in surroundPyramidsLayer1:
+                neighborPyramidCoverage[surroundPyramidsLayer1.index(p)] = True
+        neighborTilePyramidsS1.update(pyrs)
+    print(f"nr neighborTilePyramidsS1: {len(neighborTilePyramidsS1)}")
+    for i, c in enumerate(neighborPyramidCoverage):
+        if c == False:
+            print(f"ERROR: no overlap of tile position {i} and neighborPyrmaids")
+    if not overlapError:
+        print("OK: no overlap of any tile position and neighborPyrmaids")
+    #-------------------
+
+    surroundPyramidsS1 = list(getAllNeighborPyramids(set(pyramids).union(surroundPyramidsLayer1)))
+
+    #------ S2 ------
+    neighborTilePositionsS2 = getAllNeighborTilePositions(pyramids, surroundPyramidsS1, set(pyramids).union(surroundPyramidsLayer1))
+
+    surroundPyramidsS2 = list(getAllNeighborPyramids(set(pyramids).union(surroundPyramidsLayer1).union(surroundPyramidsLayer2)))
+
+    #------ S3 ------
+    neighborTilePositionsS3 = getAllNeighborTilePositions(pyramids, surroundPyramidsS2, surroundPyramidsLayer2)
+
+
+    #---- solve monolithic ----
+    search_surrounds = 1
+    solution = solve_monolithic(search_surrounds, pyramids, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, surroundPyramidsLayer1, surroundPyramidsLayer2)
+    
+
+    # ----- TEST -----
+    testNeighborTilesPyramidsS1 = []
+    for i in range(0, len(neighborTilePositionsS1)):
+        testNeighborTilesPyramidsS1.append(generatePyramidsFromTransform(pyramids, neighborTilePositionsS1[i][0], neighborTilePositionsS1[i][1], neighborTilePositionsS1[i][2], neighborTilePositionsS1[i][3]))
+    
+    for i, t in enumerate(testNeighborTilesPyramidsS1):
+       exportPyramids(t, f"neighbors/S1/neighborS1_{i}")
+
+    testNeighborTilesPyramidsS2 = []
+    for i in range(0, len(neighborTilePositionsS2)):
+        testNeighborTilesPyramidsS2.append(generatePyramidsFromTransform(pyramids, neighborTilePositionsS2[i][0], neighborTilePositionsS2[i][1], neighborTilePositionsS2[i][2], neighborTilePositionsS2[i][3]))
+    
+    for i, t in enumerate(testNeighborTilesPyramidsS2):
+       exportPyramids(t, f"neighbors/S2/neighborS2_{i}")
+
+    testNeighborTilesPyramidsS3 = []
+    for i in range(0, len(neighborTilePositionsS3)):
+        testNeighborTilesPyramidsS3.append(generatePyramidsFromTransform(pyramids, neighborTilePositionsS3[i][0], neighborTilePositionsS3[i][1], neighborTilePositionsS3[i][2], neighborTilePositionsS3[i][3]))
+    
+    for i, t in enumerate(testNeighborTilesPyramidsS3):
+       exportPyramids(t, f"neighbors/S3/neighborS3_{i}")
+
+    exportPyramids(surroundPyramidsS1, "surroundPyramidsS1")
+    exportPyramids(surroundPyramidsS2, "surroundPyramidsS2")
 
 
 
-    shape_index = 0
-    for nrPyramidsInShape in range(6, 7):
-        shapes = generate_polypyramids(nrPyramidsInShape)
-
-        for shape in shapes:
-            surroundPyramids = calculate_all_neighbor_pyramids(set(shape))
-            print(f"Shape: {list(shape)}")
-            print(f"Surround: {list(surroundPyramids)}")
-
-            # ---------------- S1 ----------------
-            neighborTilePositionsS1 = calculate_all_neighbor_tile_positions(surroundPyramids, shape)
-            print(f"Nr Neighbor Tile Positions S1: {len(neighborTilePositionsS1)}")
-            #print(f"Neighbor Tile Positions S1: {neighborTilePositionsS1}")
-
-            neighborTilePyramidsS1 = set()
-            for pos, orientation in neighborTilePositionsS1:
-                rotated_pyramids = create_rotated_pyramid_coords(orientation, shape, (0, 0, 0))
-                for px, py, pz, pyr in rotated_pyramids:
-                    transformed_p = (px + pos[0], py + pos[1], pz + pos[2], pyr)
-                    neighborTilePyramidsS1.add(transformed_p)
-
-            #print(f"Neighbor Tile Pyramids: {list(neighborTilePyramidsS1)}")
-
-            # ---------------- S2 ----------------
-            surroundS1 = calculate_all_neighbor_pyramids(neighborTilePyramidsS1)
-            neighborTilePositionsS2 = calculate_all_neighbor_tile_positions(surroundS1, shape, forbiddenPyramids = surroundPyramids)
-            print(f"Nr Neighbor Tile Positions S2: {len(neighborTilePositionsS2)}")
-            #print(f"Neighbor Tile Positions S2: {neighborTilePositionsS2}")
-
-            neighborTilePyramidsS2 = set()
-            for pos, orientation in neighborTilePositionsS2:
-                rotated_pyramids = create_rotated_pyramid_coords(orientation, shape, (0, 0, 0))
-                for px, py, pz, pyr in rotated_pyramids:
-                    transformed_p = (px + pos[0], py + pos[1], pz + pos[2], pyr)
-                    neighborTilePyramidsS2.add(transformed_p)
-
-            #print(f"Neighbor Tile Pyramids: {list(neighborTilePyramidsS2)}")
-
-            # ---------------- S3 ----------------
-            surroundS2 = calculate_all_neighbor_pyramids(neighborTilePyramidsS2)
-            neighborTilePositionsS3 = calculate_all_neighbor_tile_positions(surroundS2, shape, forbiddenPyramids = surroundPyramids)
-            print(f"Nr Neighbor Tile Positions S3: {len(neighborTilePositionsS3)}")
-            #print(f"Neighbor Tile Positions S3: {neighborTilePositionsS3}")
-
-
-            # --- find all solutions ---
-            print(f"Checking shape {shape_index}...")
-            search_surrounds = 1
-            solution = solve_monolithic(shape_index, search_surrounds, shape, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3)
-            if solution:
-                search_surrounds += 1
-                solution = solve_monolithic(shape_index, search_surrounds, shape, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, previous_solution=solution)
-                if solution:
-                    search_surrounds += 1
-                    solve_monolithic(shape_index, search_surrounds, shape, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, previous_solution=solution)
-            shape_index += 1
-            
+    
