@@ -715,66 +715,64 @@ def solve_monolithic(search_surrounds, basePyramids, neighborTilePositionsS1, ne
 
     # B. S1 Surrounds Center
     # All neighbors of Center must be covered by S1
-    for c in surroundPyramidsLayer1:
-        if c in cell_covered_by_s1:
-            model.Add(sum(cell_covered_by_s1[c]) == 1)
-        else:
-            print(f"Warning: Center neighbor {c} cannot be covered by any tile.")
-            print("Solver Status: INFEASIBLE (Trivial)")
-            print(f"No solution found: Center neighbor {c} cannot be covered (Trivial INFEASIBLE).\n")
-            return
+    for p in surroundPyramidsLayer1:
+        model.Add(sum(cell_covered_by_s1[p]) == 1)
+    
     print("Generated surrounds center constraints.")
 
     # C. S2 Surrounds S1
     # Logic: If any neighbor of cell c is covered by S1, then c must be covered by (S1 or S2).
     # This forces S2 to fill all gaps around S1.
     if search_surrounds >= 2:
-        for pos, s1_var in s1_placements.items():
-            coveredCells = generatePyramidsFromTransform(basePyramids, pos[0], pos[1], pos[2], pos[3])
+        s1_cover = set(cell_covered_by_s1.keys())
+        s1_cover.update(getAllNeighborPyramids(s1_cover))
 
-            for cell in coveredCells:
-                if cell in baseSet: 
-                    continue
-            
-            neighbors = getAllNeighborPyramids({cell})
+        for c in s1_cover:
+            if c in baseSet: continue
+
+            neighbors = getAllNeighborPyramids({c})
+
+            neighbor_s1_vars = []
             for n in neighbors:
-                if n in baseSet:
-                    continue
+                neighbor_s1_vars.extend(cell_covered_by_s1.get(n, []))
 
-                # variables that could cover neighbor cell
-                target_literals = (cell_covered_by_s1.get(n, []) + cell_covered_by_s2.get(n, []))
+            if not neighbor_s1_vars:
+                continue
+            
+            # Optimization: Use Boolean Logic instead of Linear Arithmetic
+            # Logic: If any neighbor is S1, then c must be covered by (S1 or S2).
+            # Equivalent to: neighbor_is_s1 IMPLIES (c_is_s1 OR c_is_s2)
+            target_literals = cell_covered_by_s1.get(c, []) + cell_covered_by_s2.get(c, [])
+            for n_var in neighbor_s1_vars:
+                model.AddBoolOr([n_var.Not()] + target_literals)
 
-                # if no placement can cover this neighbor, skip
-                if not target_literals:
-                    continue
-                
-                # if s1_var selected -> neighbor covered
-                model.AddBoolOr([s1_var.Not()] + target_literals)
-        print("Generated surrounds S2 constraints.")
+        
+        print("Generated S2 surrounds S1 constraints.")
 
     # D. S3 Surrounds S2
     if search_surrounds >= 3:
-        for pos, s2_var in s2_placements.items():
-            coveredCells = generatePyramidsFromTransform(basePyramids, pos[0], pos[1], pos[2], pos[3])
+        s2_cover = set(cell_covered_by_s2.keys())
+        s2_cover.update(getAllNeighborPyramids(s2_cover))
 
-            for cell in coveredCells:
-                if cell in baseSet: 
-                    continue
-                
-            neighbors = getAllNeighborPyramids({cell})
+        for c in s2_cover:
+            if c in baseSet: continue
+
+            neighbors = getAllNeighborPyramids({c})
+
+            neighbor_s2_vars = []
             for n in neighbors:
-                if n in baseSet:
-                    continue
+                neighbor_s2_vars.extend(cell_covered_by_s2.get(n, []))
 
-                target_literals = (cell_covered_by_s1.get(n, []) + cell_covered_by_s2.get(n, []) + cell_covered_by_s3.get(n, []))
-
-                if not target_literals:
-                    continue
-
-                # if s2_var selected -> neighbor covered
-                model.AddBoolOr([s2_var.Not()] + target_literals)
-
-        print("Generated surrounds S3 constraints.")
+            if not neighbor_s2_vars:
+                continue
+            
+            # Logic: If any neighbor is S2, then c must be covered by (S1 or S2 or S3).
+            # Equivalent to: neighbor_is_s2 IMPLIES (c_is_s1 OR c_is_s2 OR c_is_s3)
+            target_literals = cell_covered_by_s1.get(c, []) + cell_covered_by_s2.get(c, []) + cell_covered_by_s3.get(c, [])
+            for n_var in neighbor_s2_vars:
+                model.AddBoolOr([n_var.Not()] + target_literals)
+        
+        print("Generated S3 surrounds S2 constraints.")
     
     print("generated model. Starting solver...")
 
@@ -858,7 +856,7 @@ if __name__ == '__main__':
     neighborPyramidsCase0 = calculateNeighborPyramidsCase0()
     print(f"Nr neighborPyramidsCase0: {len(neighborPyramidsCase0)}")
 
-    pyramids = [pyrCoord_xp]#, pyrCoord_yp, pyrCoord_yn, pyrCoord_1xn, pyrCoord_1zp, pyrCoord_1zn]
+    pyramids = [pyrCoord_xp, pyrCoord_yp, pyrCoord_yn, pyrCoord_1xn, pyrCoord_1zp, pyrCoord_1zn]
     #pyramids = [pyrCoord_xp, pyrCoord_nx]#, pyrCoord_yp, pyrCoord_yn, pyrCoord_zp, pyrCoord_zn]
     print(f"pyramids: {pyramids}")
     
