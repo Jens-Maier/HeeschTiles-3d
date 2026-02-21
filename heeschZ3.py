@@ -614,7 +614,7 @@ def generate_polypyramids(n):
 #                    
 #    return True
 
-def solve_monolithic(search_surrounds, basePyramids, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, neighborTilePositionsS4, surroundPyramidsLayer1, surroundPyramidsLayer2, surroundPyramidsLayer3):
+def solve_monolithic(search_surrounds, basePyramids, shapeIndex, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, neighborTilePositionsS4, surroundPyramidsLayer1, surroundPyramidsLayer2, surroundPyramidsLayer3):
     model = cp_model.CpModel()
 
     baseSet = set(basePyramids)
@@ -835,6 +835,8 @@ def solve_monolithic(search_surrounds, basePyramids, neighborTilePositionsS1, ne
     solver.parameters.max_time_in_seconds = 3600
     solver.parameters.log_search_progress = False
 
+    print(f"Shape {shapeIndex}")
+
     print(f"Solving monolithic model for {search_surrounds} corona(s)...")
     status = solver.Solve(model)
 
@@ -848,7 +850,7 @@ def solve_monolithic(search_surrounds, basePyramids, neighborTilePositionsS1, ne
         s1_solution_pyramids = set()
         for t in s1_tiles:
             s1_solution_pyramids.update(generatePyramidsFromTransform(basePyramids, t[0], t[1], t[2], t[3]))
-        exportPyramids(s1_solution_pyramids, "s1_solution")
+        exportPyramids(s1_solution_pyramids, f"shape{shapeIndex}_s1_solution")
         if search_surrounds >= 2:
             s2_tiles = [key for key, value in s2_placements.items() if solver.Value(value)]
             print("")
@@ -858,7 +860,7 @@ def solve_monolithic(search_surrounds, basePyramids, neighborTilePositionsS1, ne
             s2_solution_pyramids = set()
             for t in s2_tiles:
                 s2_solution_pyramids.update(generatePyramidsFromTransform(basePyramids, t[0], t[1], t[2], t[3]))
-            exportPyramids(s2_solution_pyramids, "s2_solution")
+            exportPyramids(s2_solution_pyramids, f"shape{shapeIndex}_s2_solution")
             if search_surrounds >= 3:
                 s3_tiles = [key for key, value in s3_placements.items() if solver.Value(value)]
                 print("")
@@ -868,7 +870,7 @@ def solve_monolithic(search_surrounds, basePyramids, neighborTilePositionsS1, ne
                 s3_solution_pyramids = set()
                 for t in s3_tiles:
                     s3_solution_pyramids.update(generatePyramidsFromTransform(basePyramids, t[0], t[1], t[2], t[3]))
-                exportPyramids(s3_solution_pyramids, "s3_solution")
+                exportPyramids(s3_solution_pyramids, f"shape{shapeIndex}_s3_solution")
                 if search_surrounds >= 4:
                     s4_tiles = [key for key, value in s4_placements.items() if solver.Value(value)]
                     print("")
@@ -878,7 +880,7 @@ def solve_monolithic(search_surrounds, basePyramids, neighborTilePositionsS1, ne
                     s4_solution_pyramids = set()
                     for t in s4_tiles:
                         s4_solution_pyramids.update(generatePyramidsFromTransform(basePyramids, t[0], t[1], t[2], t[3]))
-                    exportPyramids(s4_solution_pyramids, "s4_solution")
+                    exportPyramids(s4_solution_pyramids, f"shape{shapeIndex}_s4_solution")
 
 
 
@@ -896,7 +898,7 @@ def solve_monolithic(search_surrounds, basePyramids, neighborTilePositionsS1, ne
     return status
 
 if __name__ == '__main__':
-    for nrPyramids in range(4, 5):
+    for nrPyramids in range(5, 6):
         polypyramids = generate_polypyramids(nrPyramids)
         for polypyramid in polypyramids:
             print(f"polypyramid: {polypyramid}")
@@ -928,7 +930,7 @@ if __name__ == '__main__':
         #pyramids = [pyrCoord_xp, pyrCoord_yp, pyrCoord_zp, pyrCoord_yn, pyrCoord_y1_yn]
         #pyramids = [pyrCoord_xp, pyrCoord_yp, pyrCoord_yn, pyrCoord_zp, ((0, 1, 0), (0, -1, 0))]
 
-        for pyramids in polypyramids:
+        for shapeIndex, pyramids in enumerate(polypyramids):
             print(f"polypyramid: {pyramids}")
 
             #pyramids = [pyrCoord_xp, pyrCoord_nx]#, pyrCoord_yp, pyrCoord_yn, pyrCoord_zp, pyrCoord_zn]
@@ -941,7 +943,7 @@ if __name__ == '__main__':
 
             #print(f"neighborPyramids: {neighborPyramids}")
 
-            exportPyramids(pyramids, "pyramids")
+            exportPyramids(pyramids, f"shape{shapeIndex}_pyramids")
             #exportPyramids(neighborPyramids, "neighborPyramids") # OK
 
             neighborPyramidCoverage = [False] * len(surroundPyramidsLayer1)
@@ -987,12 +989,15 @@ if __name__ == '__main__':
             neighborTilePositionsS4 = []
 
             with open("solutions.txt", "a") as f:
-                f.write("--- Tile Description ---\n")
+                f.write(f"--- Tile Description for Shape {shapeIndex} ---\n")
                 f.write(f"pyramids: {pyramids}\n")
 
             #---- solve monolithic ----
             search_surrounds = 1
-            status = solve_monolithic(search_surrounds, pyramids, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, neighborTilePositionsS4,       surroundPyramidsLayer1, surroundPyramidsLayer2, surroundPyramidsLayer3)
+            status = solve_monolithic(search_surrounds, pyramids, shapeIndex, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, neighborTilePositionsS4, surroundPyramidsLayer1, surroundPyramidsLayer2, surroundPyramidsLayer3)
+
+            with open("solutions.txt", "a") as f:
+                f.write(f"Solve status for S1: {status}\n")
 
             if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
                 with open("solutions.txt", "a") as f:
@@ -1015,9 +1020,12 @@ if __name__ == '__main__':
                 forbiddenForS3 = set(forbiddenForS2).union(surroundPyramidsS2)
 
                 with open("solutions.txt", "a") as f:
-                    f.write("--- Tile Description ---\n")
+                    f.write(f"--- Tile Description for Shape {shapeIndex} ---\n")
                     f.write(f"pyramids: {pyramids}\n")
-                status = solve_monolithic(search_surrounds, pyramids, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, neighborTilePositionsS4,       surroundPyramidsLayer1, surroundPyramidsLayer2, surroundPyramidsLayer3)
+                status = solve_monolithic(search_surrounds, pyramids, shapeIndex, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, neighborTilePositionsS4, surroundPyramidsLayer1, surroundPyramidsLayer2, surroundPyramidsLayer3)
+
+                with open("solutions.txt", "a") as f:
+                    f.write(f"Solve status for S2: {status}\n")
 
                 if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
                     with open("solutions.txt", "a") as f:
@@ -1041,9 +1049,12 @@ if __name__ == '__main__':
                     forbiddenForS4 = set(forbiddenForS3).union(surroundPyramidsS3)
 
                     with open("solutions.txt", "a") as f:
-                        f.write("--- Tile Description ---\n")
+                        f.write(f"--- Tile Description for Shape {shapeIndex} ---\n")
                         f.write(f"pyramids: {pyramids}\n")
-                    status = solve_monolithic(search_surrounds, pyramids, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, neighborTilePositionsS4,       surroundPyramidsLayer1, surroundPyramidsLayer2, surroundPyramidsLayer3)
+                    status = solve_monolithic(search_surrounds, pyramids, shapeIndex, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, neighborTilePositionsS4, surroundPyramidsLayer1, surroundPyramidsLayer2, surroundPyramidsLayer3)
+
+                    with open("solutions.txt", "a") as f:
+                        f.write(f"Solve status for S3: {status}\n")
 
                     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
                         with open("solutions.txt", "a") as f:
@@ -1055,9 +1066,12 @@ if __name__ == '__main__':
                         neighborTilePositionsS4 = getAllNeighborTilePositions(pyramids, boundaryS3, 4, forbiddenForS4)
 
                         with open("solutions.txt", "a") as f:
-                            f.write("--- Tile Description ---\n")
+                            f.write(f"--- Tile Description for Shape {shapeIndex} ---\n")
                             f.write(f"pyramids: {pyramids}\n")
-                        status = solve_monolithic(search_surrounds, pyramids, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, neighborTilePositionsS4,       surroundPyramidsLayer1, surroundPyramidsLayer2, surroundPyramidsLayer3)
+                        status = solve_monolithic(search_surrounds, pyramids, shapeIndex, neighborTilePositionsS1, neighborTilePositionsS2, neighborTilePositionsS3, neighborTilePositionsS4, surroundPyramidsLayer1, surroundPyramidsLayer2, surroundPyramidsLayer3)
+
+                        with open("solutions.txt", "a") as f:
+                            f.write(f"Solve status for S4: {status}\n")
 
                         if (status == cp_model.OPTIMAL or status == cp_model.FEASIBLE):
                             with open("solutions.txt", "a") as f:
