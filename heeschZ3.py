@@ -157,7 +157,6 @@ def exportPyramids(pyramids, fileName):
 
 def rotatePyramids(pyramids, axis, direction, center, basisVectors):
     newCoords = []
-    oldBasisVectors = basisVectors.copy()
     #print(f"rotatePyramids: axis: {axis}, direction: {direction}, center: {center}")
     for (pos, pyr) in pyramids:
         #print(f"pyramid: {pyr}")
@@ -847,40 +846,40 @@ def solve_monolithic(search_surrounds, basePyramids, shapeIndex, neighborTilePos
         print(f"S1: {s1_tiles}")
         with open("solutions.txt", "a") as f:
             f.write(f"S1: {s1_tiles}\n")
-        s1_solution_pyramids = set()
-        for t in s1_tiles:
+        for i, t in enumerate(s1_tiles):
+            s1_solution_pyramids = set()
             s1_solution_pyramids.update(generatePyramidsFromTransform(basePyramids, t[0], t[1], t[2], t[3]))
-        exportPyramids(s1_solution_pyramids, f"shape{shapeIndex}_s1_solution")
+            exportPyramids(s1_solution_pyramids, f"obj_solutions/shape{shapeIndex}_s1_solution_{i}")
         if search_surrounds >= 2:
             s2_tiles = [key for key, value in s2_placements.items() if solver.Value(value)]
             print("")
             print(f"S2: {s2_tiles}")
             with open("solutions.txt", "a") as f:
                 f.write(f"S2: {s2_tiles}\n")
-            s2_solution_pyramids = set()
-            for t in s2_tiles:
+            for i, t in enumerate(s2_tiles):
+                s2_solution_pyramids = set()
                 s2_solution_pyramids.update(generatePyramidsFromTransform(basePyramids, t[0], t[1], t[2], t[3]))
-            exportPyramids(s2_solution_pyramids, f"shape{shapeIndex}_s2_solution")
+                exportPyramids(s2_solution_pyramids, f"obj_solutions/shape{shapeIndex}_s2_solution_{i}")
             if search_surrounds >= 3:
                 s3_tiles = [key for key, value in s3_placements.items() if solver.Value(value)]
                 print("")
                 print(f"S3: {s3_tiles}")
                 with open("solutions.txt", "a") as f:
                     f.write(f"S3: {s3_tiles}\n")
-                s3_solution_pyramids = set()
-                for t in s3_tiles:
+                for i, t in enumerate(s3_tiles):
+                    s3_solution_pyramids = set()
                     s3_solution_pyramids.update(generatePyramidsFromTransform(basePyramids, t[0], t[1], t[2], t[3]))
-                exportPyramids(s3_solution_pyramids, f"shape{shapeIndex}_s3_solution")
+                    exportPyramids(s3_solution_pyramids, f"obj_solutions/shape{shapeIndex}_s3_solution_{i}")
                 if search_surrounds >= 4:
                     s4_tiles = [key for key, value in s4_placements.items() if solver.Value(value)]
                     print("")
                     print(f"S4: {s4_tiles}")
                     with open("solutions.txt", "a") as f:
                         f.write(f"S4: {s4_tiles}\n")
-                    s4_solution_pyramids = set()
-                    for t in s4_tiles:
+                    for i, t in enumerate(s4_tiles):
+                        s4_solution_pyramids = set()
                         s4_solution_pyramids.update(generatePyramidsFromTransform(basePyramids, t[0], t[1], t[2], t[3]))
-                    exportPyramids(s4_solution_pyramids, f"shape{shapeIndex}_s4_solution")
+                        exportPyramids(s4_solution_pyramids, f"obj_solutions/shape{shapeIndex}_s4_solution_{i}")
 
 
 
@@ -931,6 +930,8 @@ if __name__ == '__main__':
         #pyramids = [pyrCoord_xp, pyrCoord_yp, pyrCoord_yn, pyrCoord_zp, ((0, 1, 0), (0, -1, 0))]
 
         for shapeIndex, pyramids in enumerate(polypyramids):
+            if shapeIndex < 15:# shape 13, 14 crashes
+                continue
             print(f"polypyramid: {pyramids}")
 
             #pyramids = [pyrCoord_xp, pyrCoord_nx]#, pyrCoord_yp, pyrCoord_yn, pyrCoord_zp, pyrCoord_zn]
@@ -943,7 +944,7 @@ if __name__ == '__main__':
 
             #print(f"neighborPyramids: {neighborPyramids}")
 
-            exportPyramids(pyramids, f"shape{shapeIndex}_pyramids")
+            exportPyramids(pyramids, f"obj_solutions/shape{shapeIndex}_pyramids")
             #exportPyramids(neighborPyramids, "neighborPyramids") # OK
 
             neighborPyramidCoverage = [False] * len(surroundPyramidsLayer1)
@@ -1003,7 +1004,7 @@ if __name__ == '__main__':
                 with open("solutions.txt", "a") as f:
                     f.write("Solution S1 found!\n")
                 print("Solution S1 found, starting seach for S2")
-                exportPyramids(surroundPyramidsS1, "surroundPyramidsS1")
+                exportPyramids(surroundPyramidsS1, "obj_solutions/surroundPyramidsS1")
 
                 search_surrounds = 2
                 #------ S2 ------
@@ -1032,7 +1033,7 @@ if __name__ == '__main__':
                         f.write("Solution S2 found!\n")
                     print("Solution S2 found, starting seach for S3")
 
-                    exportPyramids(surroundPyramidsS2, "surroundPyramidsS2")
+                    exportPyramids(surroundPyramidsS2, "obj_solutions/surroundPyramidsS2")
                     search_surrounds = 3
                     #------ S3 ------
                     boundaryS3 = set(boundaryS2).union(pyramidsReachableByS2)
@@ -1060,7 +1061,7 @@ if __name__ == '__main__':
                         with open("solutions.txt", "a") as f:
                             f.write("Solution S3 found!\n")
                         print("Solution S3 found, starting seach for S4")
-                        exportPyramids(surroundPyramidsS3, "surroundPyramidsS3")
+                        exportPyramids(surroundPyramidsS3, "obj_solutions/surroundPyramidsS3")
                         search_surrounds = 4
                         #------ S4 ------
                         neighborTilePositionsS4 = getAllNeighborTilePositions(pyramids, boundaryS3, 4, forbiddenForS4)
