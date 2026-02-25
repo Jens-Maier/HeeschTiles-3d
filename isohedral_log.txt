@@ -1,0 +1,461 @@
+Generating poly-pyramids of size 2...
+Generating root node...
+setting pyramids to placement: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+creating node: placement: ((0, 0, 0), (0, 1, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0))], newLayer
+adding placement to pyramids, placement. ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+creating node: placement: ((1, 0, 0), (-1, 0, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0))]
+adding placement to pyramids, placement. ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+Layer 1 (Size 2) generated 2 shapes.
+Checking Shape 0...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0))]
+  Shape size: 2
+    Skipping k=1 (Volume 2 is not a multiple of 6)
+    Skipping k=2 (Volume 4 is not a multiple of 6)
+  Found tiling with 3 tiles in (1, 1, 1) box. Orbits: 1
+Shape 0 is Isohedral (1-anisohedral).
+Checking Shape 1...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((1, 0, 0), (-1, 0, 0))]
+  Shape size: 2
+    Skipping k=1 (Volume 2 is not a multiple of 6)
+    Skipping k=2 (Volume 4 is not a multiple of 6)
+  Found tiling with 3 tiles in (1, 1, 1) box. Orbits: 1
+Shape 1 is Isohedral (1-anisohedral).
+Generating poly-pyramids of size 3...
+Generating root node...
+setting pyramids to placement: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+creating node: placement: ((0, 0, 0), (0, 1, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0))], newLayer
+adding placement to pyramids, placement. ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+creating node: placement: ((1, 0, 0), (-1, 0, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0))]
+adding placement to pyramids, placement. ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+Layer 1 (Size 2) generated 2 shapes.
+creating node: placement: ((0, 0, 0), (0, -1, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0))], newLayer
+adding placement to pyramids, placement. ((0, 0, 0), (0, -1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+creating node: placement: ((0, 0, 0), (0, 0, 1)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0))]
+adding placement to pyramids, placement. ((0, 0, 0), (0, 0, 1))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 1), (0, 0, -1))
+creating node: placement: ((1, 0, 0), (-1, 0, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0))]
+adding placement to pyramids, placement. ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+Layer 2 (Size 3) generated 3 shapes.
+Checking Shape 0...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, -1, 0))]
+  Shape size: 3
+    Skipping k=1 (Volume 3 is not a multiple of 6)
+  Found tiling with 2 tiles in (1, 1, 1) box. Orbits: 1
+Shape 0 is Isohedral (1-anisohedral).
+Checking Shape 1...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, 0, 1))]
+  Shape size: 3
+    Skipping k=1 (Volume 3 is not a multiple of 6)
+  Found tiling with 2 tiles in (1, 1, 1) box. Orbits: 1
+Shape 1 is Isohedral (1-anisohedral).
+Checking Shape 2...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((1, 0, 0), (-1, 0, 0))]
+  Shape size: 3
+    Skipping k=1 (Volume 3 is not a multiple of 6)
+  Found tiling with 2 tiles in (1, 1, 1) box. Orbits: 1
+Shape 2 is Isohedral (1-anisohedral).
+Generating poly-pyramids of size 4...
+Generating root node...
+setting pyramids to placement: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+creating node: placement: ((0, 0, 0), (0, 1, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0))], newLayer
+adding placement to pyramids, placement. ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+creating node: placement: ((1, 0, 0), (-1, 0, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0))]
+adding placement to pyramids, placement. ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+Layer 1 (Size 2) generated 2 shapes.
+creating node: placement: ((0, 0, 0), (0, -1, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0))], newLayer
+adding placement to pyramids, placement. ((0, 0, 0), (0, -1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+creating node: placement: ((0, 0, 0), (0, 0, 1)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0))]
+adding placement to pyramids, placement. ((0, 0, 0), (0, 0, 1))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 1), (0, 0, -1))
+creating node: placement: ((1, 0, 0), (-1, 0, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0))]
+adding placement to pyramids, placement. ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+Layer 2 (Size 3) generated 3 shapes.
+creating node: placement: ((0, 0, 0), (0, 0, 1)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, -1, 0))], newLayer
+adding placement to pyramids, placement. ((0, 0, 0), (0, 0, 1))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+creating node: placement: ((1, 0, 0), (-1, 0, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, -1, 0))]
+adding placement to pyramids, placement. ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, -1, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+creating node: placement: ((0, 0, 0), (-1, 0, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, -1, 0))]
+adding placement to pyramids, placement. ((0, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, -1, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((-1, 0, 0), (1, 0, 0))
+creating node: placement: ((0, 1, 0), (0, -1, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, -1, 0))]
+adding placement to pyramids, placement. ((0, 1, 0), (0, -1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in calculateFaceNeighbors(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, -1, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, 0, -1))
+creating node: placement: ((1, 0, 0), (-1, 0, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, 0, 1))]
+adding placement to pyramids, placement. ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 1), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+creating node: placement: ((0, 1, 0), (0, -1, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((1, 0, 0), (-1, 0, 0))]
+adding placement to pyramids, placement. ((0, 1, 0), (0, -1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, 0, -1))
+creating node: placement: ((1, 0, 0), (0, 1, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((1, 0, 0), (-1, 0, 0))]
+adding placement to pyramids, placement. ((1, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 1, 0), (0, -1, 0))
+creating node: placement: ((1, 0, 0), (0, -1, 0)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((1, 0, 0), (-1, 0, 0))]
+adding placement to pyramids, placement. ((1, 0, 0), (0, -1, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, -1, 0), (0, 1, 0))
+creating node: placement: ((1, 0, 0), (0, 0, 1)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((1, 0, 0), (-1, 0, 0))]
+adding placement to pyramids, placement. ((1, 0, 0), (0, 0, 1))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 1), (0, 0, -1))
+creating node: placement: ((1, 0, 0), (0, 0, -1)), existingPyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((1, 0, 0), (-1, 0, 0))]
+adding placement to pyramids, placement. ((1, 0, 0), (0, 0, -1))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (1, 0, 0))
+in calculateFaceNeighbors(): p: ((0, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 1, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (-1, 0, 0))
+in calculateFaceNeighbors(): p: ((1, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (0, 0, -1))
+in get_face_neighbor_candidates(): p: ((0, 0, 0), (-1, 0, 0))
+in get_face_neighbor_candidates(): p: ((0, 1, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, -1, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (0, 0, 1))
+in get_face_neighbor_candidates(): p: ((1, 0, 0), (1, 0, 0))
+in get_face_neighbor_candidates(): p: ((1, 0, -1), (0, 0, 1))
+Layer 3 (Size 4) generated 10 shapes.
+Checking Shape 0...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, -1, 0)), ((0, 0, 0), (0, 0, 1))]
+  Shape size: 4
+    Skipping k=1 (Volume 4 is not a multiple of 6)
+    Skipping k=2 (Volume 8 is not a multiple of 6)
+    Skipping k=4 (Volume 16 is not a multiple of 6)
+    Skipping k=5 (Volume 20 is not a multiple of 6)
+    Skipping k=7 (Volume 28 is not a multiple of 6)
+    Skipping k=8 (Volume 32 is not a multiple of 6)
+Shape 0: No small periodic tiling found.
+Checking Shape 1...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, -1, 0)), ((1, 0, 0), (-1, 0, 0))]
+  Shape size: 4
+    Skipping k=1 (Volume 4 is not a multiple of 6)
+    Skipping k=2 (Volume 8 is not a multiple of 6)
+  Found tiling with 3 tiles in (1, 1, 2) box. Orbits: 2
+Shape 1 has isohedral number <= 2.
+Checking Shape 2...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, -1, 0)), ((0, 0, 0), (-1, 0, 0))]
+  Shape size: 4
+    Skipping k=1 (Volume 4 is not a multiple of 6)
+    Skipping k=2 (Volume 8 is not a multiple of 6)
+    Skipping k=4 (Volume 16 is not a multiple of 6)
+    Skipping k=5 (Volume 20 is not a multiple of 6)
+    Skipping k=7 (Volume 28 is not a multiple of 6)
+    Skipping k=8 (Volume 32 is not a multiple of 6)
+Shape 2: No small periodic tiling found.
+Checking Shape 3...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, -1, 0)), ((0, 1, 0), (0, -1, 0))]
+  Shape size: 4
+    Skipping k=1 (Volume 4 is not a multiple of 6)
+    Skipping k=2 (Volume 8 is not a multiple of 6)
+    Skipping k=4 (Volume 16 is not a multiple of 6)
+    Skipping k=5 (Volume 20 is not a multiple of 6)
+    Skipping k=7 (Volume 28 is not a multiple of 6)
+    Skipping k=8 (Volume 32 is not a multiple of 6)
+Shape 3: No small periodic tiling found.
+Checking Shape 4...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, 0, 1)), ((1, 0, 0), (-1, 0, 0))]
+  Shape size: 4
+    Skipping k=1 (Volume 4 is not a multiple of 6)
+    Skipping k=2 (Volume 8 is not a multiple of 6)
+    Skipping k=4 (Volume 16 is not a multiple of 6)
+    Skipping k=5 (Volume 20 is not a multiple of 6)
+  Found tiling with 6 tiles in (1, 2, 2) box. Orbits: 2
+Shape 4 has isohedral number <= 2.
+Checking Shape 5...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((1, 0, 0), (-1, 0, 0)), ((0, 1, 0), (0, -1, 0))]
+  Shape size: 4
+    Skipping k=1 (Volume 4 is not a multiple of 6)
+    Skipping k=2 (Volume 8 is not a multiple of 6)
+  Found tiling with 3 tiles in (1, 1, 2) box. Orbits: 2
+Shape 5 has isohedral number <= 2.
+Checking Shape 6...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((1, 0, 0), (-1, 0, 0)), ((1, 0, 0), (0, 1, 0))]
+  Shape size: 4
+    Skipping k=1 (Volume 4 is not a multiple of 6)
+    Skipping k=2 (Volume 8 is not a multiple of 6)
+    Skipping k=4 (Volume 16 is not a multiple of 6)
+    Skipping k=5 (Volume 20 is not a multiple of 6)
+  Found tiling with 6 tiles in (1, 2, 2) box. Orbits: 3
+Shape 6 has isohedral number <= 3.
+Checking Shape 7...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((1, 0, 0), (-1, 0, 0)), ((1, 0, 0), (0, -1, 0))]
+  Shape size: 4
+    Skipping k=1 (Volume 4 is not a multiple of 6)
+    Skipping k=2 (Volume 8 is not a multiple of 6)
+    Skipping k=4 (Volume 16 is not a multiple of 6)
+    Skipping k=5 (Volume 20 is not a multiple of 6)
+  Found tiling with 6 tiles in (1, 2, 2) box. Orbits: 3
+Shape 7 has isohedral number <= 3.
+Checking Shape 8...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((1, 0, 0), (-1, 0, 0)), ((1, 0, 0), (0, 0, 1))]
+  Shape size: 4
+    Skipping k=1 (Volume 4 is not a multiple of 6)
+    Skipping k=2 (Volume 8 is not a multiple of 6)
+  Found tiling with 3 tiles in (1, 1, 2) box. Orbits: 2
+Shape 8 has isohedral number <= 2.
+Checking Shape 9...
+Pyramids: [((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((1, 0, 0), (-1, 0, 0)), ((1, 0, 0), (0, 0, -1))]
+  Shape size: 4
+    Skipping k=1 (Volume 4 is not a multiple of 6)
+    Skipping k=2 (Volume 8 is not a multiple of 6)
+  Found tiling with 3 tiles in (1, 1, 2) box. Orbits: 2
+Shape 9 has isohedral number <= 2.
